@@ -28,10 +28,10 @@
             z-index: 10; opacity: 0.8; transition: opacity 0.5s;
         }
         
-        /* 手機/直向佈局：置於底部中心，並拉開與底部的距離，避開手機底層 Home 條 */
+        /* 手機/直向佈局：置於底部中心 (稍微下壓以騰出上方空間) */
         @media (orientation: portrait) {
             #dpad {
-                bottom: calc(80px + env(safe-area-inset-bottom, 0px)); 
+                bottom: calc(50px + env(safe-area-inset-bottom, 0px)); 
                 left: 50%; transform: translateX(-50%);
             }
         }
@@ -104,34 +104,30 @@
         let particles =[];
         let fragments =[];
 
-      function resize() {
+        function resize() {
             width = window.innerWidth; height = window.innerHeight;
             canvas.width = width; canvas.height = height;
             
             let isPortrait = height > width;
             
-            // ★ 修改：明確劃分各方向的「保留邊距 (px)」
-            let reservedTop = 80;    // 頂部強制保留空間
-            
-            // ★ 重點修改：將直向模式的底部保留空間由 280 改為 360
-            // 這會讓迷宮計算可用高度時扣除更多底部空間，避免與按鍵重疊
-            let reservedBottom = isPortrait ? 360 : 60; 
-            
-            let reservedRight = isPortrait ? 0 : 260;   // 橫向模式避開右側按鍵
-            let reservedLeft = 0;
+            // ★ 修改排版邏輯：解除原本的相對比例限制，絕對確保底部空間
+            let reservedTop = isPortrait ? 60 : 40; 
+            // 直向時，強制保留底部 280px (給 160px 的鍵盤 + 上下緩衝)，確保迷宮不會掉下來
+            let reservedBottom = isPortrait ? 280 : 60; 
+            let reservedRight = isPortrait ? 0 : 260;   
+            let reservedLeft = isPortrait ? 0 : 40;
 
-            // 計算出扣除保留區後，「真正可用」來畫迷宮的寬高
-            let avH = Math.max(height - reservedTop - reservedBottom, height * 0.4);
-            let avW = Math.max(width - reservedLeft - reservedRight, width * 0.4);   
+            // 計算「真正可用」的寬高 (移除原本過度保護的 height*0.4 限制)
+            let avH = Math.max(height - reservedTop - reservedBottom, 150);
+            let avW = Math.max(width - reservedLeft - reservedRight, 150);   
             
-            // 在可用空間中，再取 90% 比例作為網格尺寸，增加呼吸感
-            cellSize = Math.min(avW * 0.9 / cols, avH * 0.9 / rows);
+            // 使用可用空間的 95% 來決定網格大小
+            cellSize = Math.min(avW * 0.95 / cols, avH * 0.95 / rows);
             
-            // 動態置中：確保迷宮會加上剛剛設定的「上方與左側保留值」
+            // 嚴格在剛剛劃分出來的安全區域內置中
             offsetX = reservedLeft + (avW - cols * cellSize) / 2;
             offsetY = reservedTop + (avH - rows * cellSize) / 2;
             
-            // 如果正在遊戲中，重新計算實體像素位置以免錯位
             if (state === 'play') { updateEntityPixelPos(player); updateEntityPixelPos(goal); }
         }
         window.addEventListener('resize', resize);
@@ -190,7 +186,7 @@
             changeState('play');
         }
 
-        // --- 移動控制 (規矩的做法) ---
+        // --- 移動控制 ---
         function movePlayer(dirIndex) {
             if (state !== 'play' || goal.isDragging) return;
             let cell = grid[index(player.c, player.r)];
@@ -268,7 +264,7 @@
         // 迷宮炸裂：生成具備高科技霓虹感的碎片
         function shatterMaze() {
             let cx = (player.x + goal.x)/2; let cy = (player.y + goal.y)/2;
-            let neonColors =['#0ff', '#f0f', '#0f0', '#ffe600']; // 青, 紫, 綠, 黃
+            let neonColors =['#0ff', '#f0f', '#0f0', '#ffe600']; 
             
             for (let cell of grid) {
                 let x = offsetX + cell.c * cellSize, y = offsetY + cell.r * cellSize;
@@ -276,7 +272,7 @@
                 
                 let pushWall = (wx, wy, ang) => {
                     let dist = Math.max(1, Math.hypot(wx - cx, wy - cy));
-                    let force = 1200 / dist; // 狂暴爆炸力
+                    let force = 1200 / dist;
                     fragments.push({ 
                         x: wx, y: wy, angle: ang, len: cellSize, w: lw, 
                         vx: ((wx-cx)/dist)*force, vy: ((wy-cy)/dist)*force, 
@@ -289,7 +285,7 @@
                 if (cell.walls[2]) pushWall(x + cellSize/2, y + cellSize, 0);
                 if (cell.walls[3]) pushWall(x, y + cellSize/2, Math.PI/2);
             }
-            grid =[]; // 瞬間抹除迷宮結構
+            grid =[];
         }
 
         // --- 繪圖輔助 ---
@@ -328,18 +324,16 @@
             }
             for(let f of fragments) { 
                 f.x += f.vx; f.y += f.vy; 
-                f.vy += 0.2; // 較輕的引力
+                f.vy += 0.2; 
                 f.angle += f.va; 
             }
 
-            // 在覺醒結局中生成星辰粒子
             if (state === 'rebel_shatter' || state === 'rebel_ascend') {
                 if (Math.random() < 0.4) createAscendStar(width, height);
             }
 
             // --- 狀態機邏輯 ---
             if (state === 'play') {
-                // 平滑追蹤座標
                 player.x += ((offsetX + player.c * cellSize + cellSize/2) - player.x) * 0.3; 
                 player.y += ((offsetY + player.r * cellSize + cellSize/2) - player.y) * 0.3;
                 if (!goal.isDragging) { 
@@ -347,34 +341,27 @@
                     goal.y += ((offsetY + goal.r * cellSize + cellSize/2) - goal.y) * 0.3; 
                 }
 
-                // 碰撞判定
                 if (Math.hypot(player.x - goal.x, player.y - goal.y) < cellSize * 0.8) {
                     dpad.classList.add('hidden');
-                    if (isRebel) { 
-                        changeState('rebel_touch'); // 進入第一階段覺醒
-                    } else { 
-                        changeState('factory_warn'); // 進入體制結局
-                    }
+                    if (isRebel) changeState('rebel_touch');
+                    else changeState('factory_warn');
                 }
             }
-            // 叛逆路線三階段
             else if (state === 'rebel_touch') {
                 if (t > 1.2) { 
-                    changeState('rebel_shatter'); // 進入第二階段爆發
+                    changeState('rebel_shatter'); 
                     shatterMaze();
-                    // 爆發瞬間產生巨量高能火花
                     let cx = (player.x + goal.x)/2; let cy = (player.y + goal.y)/2;
                     for(let i=0; i<80; i++) createSparks(cx, cy, `hsl(${Math.random()*360}, 100%, 70%)`);
                 }
             }
             else if (state === 'rebel_shatter') {
                 body.classList.add('awake'); 
-                if (t > 1.5) changeState('rebel_ascend'); // 進入第三階段飛昇
+                if (t > 1.5) changeState('rebel_ascend'); 
             }
             else if (state === 'rebel_ascend') {
                 if (t > 5) reset();
             }
-            // 規矩路線三階段
             else if (state === 'factory_warn') {
                 if (t > 1.0) changeState('factory_smash');
             }
@@ -388,25 +375,21 @@
             // --- 畫面繪製區 ---
             ctx.save();
             
-            // 螢幕震動 (接觸異常 或 砸下瞬間)
             let shake = 0;
-            if (state === 'rebel_touch') shake = t * 15; // 接觸時震動逐漸增強
+            if (state === 'rebel_touch') shake = t * 15; 
             if (state === 'factory_smash' && t < 0.3 && t > 0.1) shake = 30 * (0.3 - t);
             if (shake) ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake);
 
-            // 背景警報紅光 (規矩結局)
             if (state === 'factory_warn' || state === 'factory_smash') {
                 let redAlpha = state === 'factory_warn' ? Math.abs(Math.sin(t * 15)) * 0.3 : 0.4 - t*0.2;
                 ctx.fillStyle = `rgba(239, 68, 68, ${Math.max(0, redAlpha)})`;
                 ctx.fillRect(0, 0, width, height);
             }
 
-            // 繪製靜態迷宮 
             if (grid.length > 0) {
                 let mazeAlpha = 1;
                 if (state === 'factory_line') mazeAlpha = Math.max(0, 1 - t*1.5); 
                 
-                // 接觸異常時，迷宮隨機出現錯位干擾 (Glitch)
                 let mazeOffset = (state === 'rebel_touch' && Math.random() > 0.5) ? (Math.random()-0.5)*10 : 0;
                 
                 ctx.strokeStyle = state === 'rebel_touch' ? (Math.random()>0.8?'#ef4444':'#475569') : '#475569'; 
@@ -421,15 +404,11 @@
                 }
                 ctx.stroke(); ctx.globalAlpha = 1;
             }
-
-            // --- 繪製實體與結局動畫 ---
             
-            // 叛逆路線：第一階段【能量過載】
             if (state === 'rebel_touch') {
                 let jitterX1 = (Math.random()-0.5)*10; let jitterY1 = (Math.random()-0.5)*10;
                 let jitterX2 = (Math.random()-0.5)*10; let jitterY2 = (Math.random()-0.5)*10;
                 
-                // 繪製高壓電弧
                 ctx.strokeStyle = '#0ff'; ctx.lineWidth = 3;
                 ctx.beginPath(); ctx.moveTo(player.x+jitterX1, player.y+jitterY1);
                 for(let i=1; i<=4; i++) {
@@ -442,33 +421,26 @@
                 drawEntity(goal.x+jitterX2, goal.y+jitterY2, goal.color, true);
                 drawEntity(player.x+jitterX1, player.y+jitterY1, player.color, true);
                 
-                // 畫面 Glitch 特效
                 ctx.fillStyle = Math.random()>0.5 ? 'rgba(0, 255, 255, 0.1)' : 'rgba(255, 0, 0, 0.1)';
                 ctx.fillRect(Math.random()*width, Math.random()*height, Math.random()*width, Math.random()*50);
             }
-            // 叛逆路線：第二階段【迷宮炸裂】
             else if (state === 'rebel_shatter') {
                 let cx = (player.x + goal.x)/2; let cy = (player.y + goal.y)/2;
                 
-                // 繪製多層霓虹衝擊波
                 ctx.beginPath(); ctx.arc(cx, cy, t * 1500, 0, Math.PI * 2);
                 ctx.lineWidth = Math.max(0, 40 - t * 25); ctx.strokeStyle = '#0ff'; ctx.stroke();
                 ctx.beginPath(); ctx.arc(cx, cy, t * 1000, 0, Math.PI * 2);
                 ctx.lineWidth = Math.max(0, 30 - t * 20); ctx.strokeStyle = '#f0f'; ctx.stroke();
 
-                // 兩球高速交融
                 let ang = t * 20; let dist = Math.max(0, cellSize*0.6 - t*cellSize); 
                 drawEntity(cx + Math.cos(ang)*dist, cy + Math.sin(ang)*dist, player.color, true);
                 drawEntity(cx + Math.cos(ang+Math.PI)*dist, cy + Math.sin(ang+Math.PI)*dist, goal.color, true);
             }
-            // 叛逆路線：第三階段【星辰飛昇】
             else if (state === 'rebel_ascend') {
                 let cx = (player.x + goal.x)/2;
                 let startY = (player.y + goal.y)/2;
-                // 三次函數：指數級別的飛昇加速度
                 let cy = startY - Math.pow(t, 3) * 150; 
                 
-                // 繪製絢麗的彗星長尾 (Comet Tail)
                 let tailLength = Math.min(height * 1.5, t * 800);
                 let grad = ctx.createLinearGradient(cx, cy, cx, cy + tailLength);
                 grad.addColorStop(0, '#ffffff');
@@ -483,17 +455,13 @@
                 ctx.fillStyle = grad;
                 ctx.fill();
 
-                // 產生高能粒子
                 createSparks(cx, cy + cellSize*0.5, '#0ff');
 
-                // 繪製純白高能內核
                 ctx.beginPath(); ctx.arc(cx, cy, cellSize*0.8 + Math.random()*4, 0, Math.PI*2);
                 ctx.fillStyle = '#ffffff'; 
                 ctx.shadowColor = '#0ff'; ctx.shadowBlur = 60; 
                 ctx.fill(); ctx.shadowBlur = 0;
             }
-
-            // --- 規矩結局繪製 ---
             else if (state === 'play' || state === 'factory_warn') {
                 drawEntity(goal.x, goal.y, goal.color, goal.isDragging);
                 drawEntity(player.x, player.y, player.color, false);
@@ -544,8 +512,6 @@
             }
 
             // --- 全域渲染層 ---
-            
-            // 繪製飛散的 Cyber 霓虹碎片 (叛逆結局專屬)
             ctx.lineCap = 'round';
             for (let f of fragments) {
                 ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.angle);
@@ -555,7 +521,6 @@
                 ctx.restore();
             }
 
-            // 繪製粒子 (煙塵 / 火花 / 星辰)
             for (let p of particles) {
                 ctx.globalAlpha = Math.max(0, p.life);
                 ctx.fillStyle = p.color;
