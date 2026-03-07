@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>資訊時代的專注</title>
+    <style>
+        :root {
+            --bg-color: #030303;
+            --text-color: #d0d0d0;
+            --text-blur: 0px;
+            --popup-opacity: 1;
+            --popup-blur: 0px;
+        }
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--bg-color);
+            overflow: hidden;
+            user-select: none; -webkit-user-select: none;
+            touch-action: none; /* 防止手機瀏覽器預設的下拉刷新或滑動 */
+            font-family: "Palatino Linotype", "Book Antiqua", Palatino, "STSong", "MingLiU", serif;
+        }
+
+        /* 初始無文字開局按鈕：會呼吸的光點 */
+        #start-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            background: #000; z-index: 9999; cursor: pointer;
+            transition: opacity 1.5s;
+        }
+        .start-orb {
+            width: 50px; height: 50px; border-radius: 50%;
+            background: rgba(255,255,255,0.8);
+            box-shadow: 0 0 30px rgba(255,255,255,0.5);
+            animation: orbBreathe 3s infinite ease-in-out;
+        }
+        @keyframes orbBreathe {
+            0%, 100% { transform: scale(1); opacity: 0.6; box-shadow: 0 0 20px rgba(255,255,255,0.3); }
+            50% { transform: scale(1.5); opacity: 1; box-shadow: 0 0 50px rgba(255,255,255,0.8); }
+        }
+
+        /* 誘惑彈窗容器 (底層) */
+        #popup-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10;
+            filter: blur(var(--popup-blur));
+            transition: filter 1.5s ease;
+        }
+
+        /* 中央閱讀區塊結界 (頂層保護) */
+        #reader-container {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            /* 背景暗角：讓文字區域永遠偏暗，確保文字清晰 */
+            background: radial-gradient(circle at center, rgba(3,3,3,0.95) 0%, rgba(3,3,3,0.7) 40%, rgba(3,3,3,0) 80%);
+            /* 【核心魔術】讓所有點擊穿透這個頂層圖層，直接摸到底下的廣告 */
+            pointer-events: none; 
+            z-index: 50;
+        }
+
+        /* 古文排版 */
+        .vertical-text {
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+            color: var(--text-color);
+            filter: blur(var(--text-blur));
+            text-shadow: 0 0 10px rgba(255,255,255,0.05);
+            transition: all 0.8s ease-out;
+            /* 文字本身也必須無法被點擊，才能讓下方廣告完全受控 */
+            pointer-events: none; 
+        }
+
+        /* 通關後的純視覺光環 (無聲回饋) */
+        .zen-aura {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 0; height: 0; border-radius: 50%;
+            background: radial-gradient(circle, rgba(212,175,55,0.3) 0%, rgba(212,175,55,0) 70%);
+            z-index: 40; opacity: 0; pointer-events: none;
+            transition: width 4s, height 4s, opacity 4s;
+        }
+
+        /* 響應式排版 (電腦與平板) */
+        @media (min-width: 769px) {
+            .vertical-text { font-size: 2.2rem; line-height: 2.2; letter-spacing: 12px; height: 75vh; }
+            .popup { width: 280px; padding: 12px; border-radius: 16px; }
+            .popup-icon { font-size: 24px; }
+            .popup-title { font-size: 13px; }
+            .popup-desc { font-size: 12px; }
+        }
+        /* 響應式排版 (手機) */
+        @media (max-width: 768px) {
+            .vertical-text { font-size: 1.2rem; line-height: 1.8; letter-spacing: 6px; height: 85vh; }
+            .popup { width: 80vw; max-width: 250px; padding: 10px; border-radius: 12px; }
+            .popup-icon { font-size: 20px; }
+            .popup-title { font-size: 12px; }
+            .popup-desc { font-size: 11px; }
+        }
+
+        /* 誘惑彈窗樣式 */
+        .popup {
+            position: absolute;
+            background: rgba(255,255,255,0.96);
+            backdrop-filter: blur(5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            color: #111;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; align-items: flex-start; gap: 10px;
+            opacity: var(--popup-opacity);
+            transition: opacity 1.5s, transform 0.2s;
+            /* 恢復可點擊狀態，並優化觸控體驗 */
+            pointer-events: auto;
+            touch-action: manipulation; 
+            cursor: pointer;
+        }
+        .popup:hover, .popup:active { transform: scale(1.05); opacity: 1 !important; z-index: 100; box-shadow: 0 0 20px rgba(255,255,255,0.5); }
+        .popup-icon { line-height: 1; margin-top: 2px; }
+        .popup-content { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+        .popup-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+        .popup-app { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.5px; }
+        .popup-time { font-size: 9px; color: #aaa; }
+        .popup-title { font-weight: 700; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .popup-desc { color: #444; line-height: 1.3; }
+        
+        .whatsapp .popup-app { color: #25d366; } .youtube .popup-app { color: #ff0000; }
+        .ig .popup-app { color: #bc1888; } .news .popup-app { color: #0055ff; }
+
+        /* 特效圖層 (混亂結局) */
+        #glitch-overlay {
+            position: absolute; top:0; left:0; width:100%; height:100%;
+            pointer-events: none; mix-blend-mode: color-dodge; z-index: 9000; display: none;
+        }
+        
+        /* 禪模式 (通關) */
+        .zen-mode #reader-container { background: radial-gradient(circle, rgba(15,15,10,1) 0%, rgba(0,0,0,1) 100%); transition: background 3s; }
+        .zen-mode .vertical-text {
+            color: #ffeba1 !important;
+            text-shadow: 0 0 20px rgba(212, 175, 55, 0.8), 0 0 40px rgba(212, 175, 55, 0.4);
+            letter-spacing: 15px; transform: scale(1.05);
+        }
+        .zen-mode .zen-aura { opacity: 1; width: 120vw; height: 120vw; animation: auraBreathe 8s infinite ease-in-out; }
+
+        @keyframes slideIn { 0% { transform: translateY(20px) scale(0.9); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+        @keyframes auraBreathe { 0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; } 50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <!-- 初始畫面 -->
+    <div id="start-screen">
+        <div class="start-orb"></div>
+    </div>
+
+    <!-- 廣告生成區 -->
+    <div id="popup-container"></div>
+
+    <!-- 成功通關的純視覺回饋光環 -->
+    <div class="zen-aura" id="zen-aura"></div>
+
+    <!-- 文字保護區 (Pointer-events: none) -->
+    <div id="reader-container">
+        <div class="vertical-text" id="main-text">
+            大學之道<br>
+            在明明德<br>
+            在親民<br>
+            在止於至善<br>
+            知止而後有定<br>
+            定而後能靜<br>
+            靜而後能安<br>
+            安而後能慮<br>
+            慮而後能得<br>
+            物有本末<br>
+            事有終始<br>
+            知所先後<br>
+            則近道矣
+        </div>
+    </div>
+
+    <!-- 混亂結局畫布 -->
+    <canvas id="glitch-overlay"></canvas>
+
+    <script>
+        // --- 核心狀態 ---
+        const ZEN_TIME = 60000; // 60秒專注
+        const CHAOS_THRESHOLD = 20; // 點擊20次失敗
+        let state = 0; // 0: 未開始, 1: 專注中, 2: 禪, 3: 混亂
+        let lastMoveTime = Date.now();
+        let clickCount = 0;
+        let popups =[];
+        let spawnInterval;
+        let audioCtx, breathFilter, breathGain, masterGain;
+        
+        const root = document.documentElement;
+        const textEl = document.getElementById('main-text');
+        const popupContainer = document.getElementById('popup-container');
+        const glitchCanvas = document.getElementById('glitch-overlay');
+        const glCtx = glitchCanvas.getContext('2d');
+
+        // --- 動態字庫 ---
+        const apps =[
+            { id: 'whatsapp', name: 'WhatsApp', icon: '💬', titles:['小美', '阿明', '未知號碼', '群組 (99+)'], descs:['今晚回家吃飯嗎？', '那份報表做好了沒？', '您的包裹已送達。', '得閒飲茶！'] },
+            { id: 'youtube', name: 'YouTube', icon: '▶️', titles:['演算法推薦', 'Shorts', '為您精選'], descs:['震驚！99%人不知道的秘密...', '🔥 停不下來的搞笑合集！', '必看！年度神作解析'] },
+            { id: 'ig', name: 'Instagram', icon: '📷', titles:['user_992', '你的暗戀對象', '前任'], descs:['對你的限時動態讚好。', '在留言中提及了你。', '傳送了一則悄悄話給您。'] },
+            { id: 'news', name: 'News', icon: '📰', titles:['突發新聞', '股市快報', '娛樂頭條'], descs:['恆指暴跌！即時走勢分析...', '八號風球即將懸掛，請立即回家', '知名藝人宣佈退出娛樂圈'] }
+        ];
+
+        function resize() {
+            glitchCanvas.width = window.innerWidth;
+            glitchCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // --- 音效引擎 (僅專注與混亂時有聲) ---
+        function initAudio() {
+            if (audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            masterGain = audioCtx.createGain();
+            masterGain.connect(audioCtx.destination);
+            masterGain.gain.value = 0.5;
+
+            // 呼吸白噪音
+            let bufferSize = audioCtx.sampleRate * 2;
+            let buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            let output = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+            let noiseSource = audioCtx.createBufferSource();
+            noiseSource.buffer = buffer; noiseSource.loop = true;
+            
+            breathFilter = audioCtx.createBiquadFilter();
+            breathFilter.type = 'lowpass'; breathFilter.frequency.value = 100;
+            breathGain = audioCtx.createGain(); breathGain.gain.value = 0;
+            
+            noiseSource.connect(breathFilter); breathFilter.connect(breathGain); breathGain.connect(masterGain);
+            noiseSource.start();
+        }
+
+        function playNotificationSound() {
+            if(!audioCtx || state !== 1) return;
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.type = 'sine';
+            let baseFreq = 800 + Math.random() * 400; 
+            osc.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+            osc.connect(gain); gain.connect(masterGain);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+        }
+
+        function playClickSound() {
+            if(!audioCtx || state !== 1) return;
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.connect(gain); gain.connect(masterGain);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function playChaosGlitch() {
+            breathGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+            setInterval(() => {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.value = Math.random() * 3000;
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.05);
+                osc.connect(gain); gain.connect(masterGain);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+            }, 30);
+        }
+
+        // --- 互動啟動與生成 ---
+        
+        // 使用 pointerdown 完美兼容滑鼠與觸控
+        document.getElementById('start-screen').addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            document.getElementById('start-screen').style.opacity = '0';
+            setTimeout(() => document.getElementById('start-screen').style.display = 'none', 1500);
+            initAudio();
+            state = 1;
+            lastMoveTime = Date.now();
+            requestAnimationFrame(renderLoop);
+            
+            (function loopSpawn() {
+                if(state === 1) {
+                    spawnPopup();
+                    let nextTime = Math.max(1000, 3000 - (Date.now() - lastMoveTime)*0.05);
+                    spawnInterval = setTimeout(loopSpawn, nextTime + Math.random()*1000);
+                }
+            })();
+        });
+
+        function spawnPopup() {
+            if(state !== 1) return;
+            playNotificationSound();
+            
+            let app = apps[Math.floor(Math.random() * apps.length)];
+            let div = document.createElement('div');
+            div.className = `popup ${app.id}`;
+            div.innerHTML = `
+                <div class="popup-icon">${app.icon}</div>
+                <div class="popup-content">
+                    <div class="popup-header">
+                        <span class="popup-app">${app.name}</span>
+                        <span class="popup-time">剛剛</span>
+                    </div>
+                    <div class="popup-title">${app.titles[Math.floor(Math.random() * app.titles.length)]}</div>
+                    <div class="popup-desc">${app.descs[Math.floor(Math.random() * app.descs.length)]}</div>
+                </div>
+            `;
+            
+            // 動態計算邊界，確保廣告絕對不會超出任何尺寸的手機螢幕
+            popupContainer.appendChild(div);
+            
+            // 獲取實際寬度 (手機版大約是 80vw)
+            let popupWidth = div.offsetWidth || 250;
+            let popupHeight = div.offsetHeight || 80;
+            
+            let maxX = Math.max(10, window.innerWidth - popupWidth - 15);
+            let maxY = Math.max(10, window.innerHeight - popupHeight - 15);
+            
+            div.style.left = Math.max(10, Math.random() * maxX) + 'px';
+            div.style.top = Math.max(10, Math.random() * maxY) + 'px';
+            
+            // 統一綁定 pointerdown 事件，杜絕觸控不良
+            div.addEventListener('pointerdown', (e) => { 
+                e.preventDefault(); // 防止穿透引起二次觸發
+                e.stopPropagation(); // 阻止背景觸發分心判定
+                breakFocus(true); 
+                div.remove(); 
+            });
+
+            popups.push(div);
+            if(popups.length > 20) {
+                let old = popups.shift();
+                if(old.parentNode) old.parentNode.removeChild(old);
+            }
+        }
+
+        // --- 狀態切換邏輯 ---
+        function breakFocus(isClick = false) {
+            if(state > 1) return;
+            
+            lastMoveTime = Date.now();
+            
+            // 失焦懲罰：文字模糊，廣告變清晰
+            root.style.setProperty('--text-blur', '10px');
+            root.style.setProperty('--popup-opacity', '1');
+            root.style.setProperty('--popup-blur', '0px');
+            textEl.style.textShadow = 'none';
+            textEl.style.transform = 'scale(0.98)';
+            
+            if(breathGain) breathGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+
+            if(isClick) {
+                clickCount++;
+                playClickSound();
+                if(clickCount >= CHAOS_THRESHOLD) triggerChaos();
+            }
+        }
+
+        function triggerChaos() {
+            state = 3;
+            clearTimeout(spawnInterval);
+            playChaosGlitch();
+            glitchCanvas.style.display = 'block';
+            document.body.style.backgroundColor = '#fff';
+            
+            textEl.innerHTML = "ERR_FOCUS_LOST<br>SYSTEM_OVERLOAD<br>ATTENTION_DEFICIT";
+            textEl.style.fontFamily = "monospace";
+            textEl.style.writingMode = "horizontal-tb";
+            textEl.style.color = "#000";
+            textEl.style.filter = 'blur(0px)';
+            
+            setInterval(() => {
+                document.body.style.backgroundColor = Math.random() > 0.5 ? '#f00' : '#000';
+                textEl.style.color = Math.random() > 0.5 ? '#fff' : '#000';
+                glCtx.fillStyle = `rgba(${Math.random()*255},0,0, 0.7)`;
+                glCtx.fillRect(Math.random()*window.innerWidth, Math.random()*window.innerHeight, window.innerWidth, Math.random()*100);
+            }, 40);
+        }
+
+        function triggerZen() {
+            state = 2; // 通關
+            clearTimeout(spawnInterval);
+            
+            // 【完全靜音】切斷所有聽覺刺激，回歸純淨
+            if(audioCtx) {
+                masterGain.gain.setTargetAtTime(0, audioCtx.currentTime, 1);
+            }
+            
+            // 清除一切干擾
+            popups.forEach(p => p.style.opacity = '0');
+            setTimeout(() => { popups.forEach(p => { if(p.parentNode) p.parentNode.removeChild(p); }); }, 1500);
+
+            // 啟動純粹的視覺回饋
+            document.body.classList.add('zen-mode');
+            root.style.setProperty('--text-blur', '0px');
+            textEl.style.transform = 'scale(1.05)';
+        }
+
+        // 偵測任何無意識的動作 (滑鼠移動、滾輪)
+        window.addEventListener('pointermove', (e) => {
+            // 在手機上，稍微的手指滑動就會觸發 pointermove，視為分心
+            if (e.pointerType === 'mouse' || e.pointerType === 'touch') {
+                breakFocus(false);
+            }
+        });
+        window.addEventListener('wheel', () => breakFocus(false));
+        window.addEventListener('keydown', () => breakFocus(false));
+        
+        // 點擊背景也算分心 (如果是點擊廣告，已經被 stopPropagation 擋下了)
+        window.addEventListener('pointerdown', (e) => {
+            if(e.target.closest('#start-screen') || e.target.closest('.popup')) return;
+            breakFocus(true);
+        });
+
+        // --- 繪製與視覺降噪 ---
+        function renderLoop() {
+            if(state !== 1) return;
+            requestAnimationFrame(renderLoop);
+            
+            let now = Date.now();
+            let idleTime = now - lastMoveTime;
+
+            if(idleTime >= ZEN_TIME) {
+                triggerZen();
+                return;
+            }
+
+            // 靜止超過 2 秒，啟動「視覺降噪」與呼吸聚焦
+            if(idleTime > 2000) {
+                let focusLevel = Math.min((idleTime - 2000) / 4000, 1); 
+                
+                root.style.setProperty('--text-blur', (10 - focusLevel * 10) + 'px');
+                // 將廣告打霧並變淡至 15%，完全不干擾閱讀
+                root.style.setProperty('--popup-opacity', 1 - (focusLevel * 0.85)); 
+                root.style.setProperty('--popup-blur', (focusLevel * 5) + 'px'); 
+
+                // 文字發光律動
+                let phase = (now % 8000) / 8000; 
+                let breath = Math.sin(phase * Math.PI * 2); 
+                
+                let textGlow = 5 + (breath + 1) * 10;
+                textEl.style.textShadow = `0 0 ${textGlow}px rgba(255, 255, 255, ${0.4 + breath*0.1})`;
+                textEl.style.transform = `scale(${1 + breath * 0.015})`;
+
+                // 聽覺白噪音律動
+                if(breathGain && breathFilter) {
+                    breathGain.gain.setTargetAtTime(0.6, audioCtx.currentTime, 0.5);
+                    breathFilter.frequency.setTargetAtTime(100 + (breath + 1) * 200, audioCtx.currentTime, 0.1);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
