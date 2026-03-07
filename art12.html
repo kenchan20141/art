@@ -35,10 +35,10 @@
         const ctx = canvas.getContext('2d');
 
         let W, H;
-        const grades = ["LV 1", "LV 2", "LV 3", "LV 4", "LV 5", "LV 5*", "LV 5**"];
-        const binCounts = [0, 0, 0, 0, 0, 0, 0];
-        const balls = [];
-        const floatingTexts = [];
+        const grades =["LV 1", "LV 2", "LV 3", "LV 4", "LV 5", "LV 5*", "LV 5**"];
+        const binCounts =[0, 0, 0, 0, 0, 0, 0];
+        const balls =[];
+        const floatingTexts =[];
         
         // 互動狀態
         let isCharging = false;
@@ -46,8 +46,8 @@
         
         // 遊戲結束狀態
         let isGameOver = false;
-        let finalResult = ""; // 最終顯示的等第
-        let gameOverAlpha = 0; // 用於淡入結算畫面
+        let finalResult = ""; 
+        let gameOverAlpha = 0; 
 
         // 畫布自適應
         function resize() {
@@ -62,7 +62,6 @@
         // 綁定事件
         window.addEventListener('pointerdown', (e) => {
             if (isGameOver) {
-                // 遊戲結束時，點擊任何地方重啟
                 if (gameOverAlpha > 0.8) resetGame();
             } else {
                 isCharging = true;
@@ -94,7 +93,6 @@
         }
 
         function getEffortColor(value) {
-            // 顏色從冷淡的藍灰漸變到熾熱的金紅
             const h = 220 - (value * 220); 
             const s = 40 + value * 60;
             const l = 50 + value * 10;
@@ -107,19 +105,14 @@
         function getBoardMetrics() {
             const binWidth = Math.min(W * 0.9 / COLS, 55); 
             const startX = (W - binWidth * COLS) / 2 + binWidth / 2;
-            const startY = H * 0.20; // 釘板起始位置
+            const startY = H * 0.20; 
             const rowHeight = (H * 0.4) / ROWS; 
-            
-            // 目標線位置 (設定在釘板區域上方，留出壓迫感)
             const targetLineY = startY - rowHeight * 1.5; 
-
-            // 底部基準線
             const baseline = startY + ROWS * rowHeight + 40;
 
             return { binWidth, startX, startY, rowHeight, targetLineY, baseline };
         }
 
-        // 浮動文字 (過程中的反饋)
         class FloatingText {
             constructor(x, y, text, color) {
                 this.x = x;
@@ -136,7 +129,7 @@
             draw(ctx) {
                 if (this.life <= 0) return;
                 ctx.save();
-                ctx.globalAlpha = this.life * 0.7; // 稍微淡一點，不搶戲
+                ctx.globalAlpha = this.life * 0.7; 
                 ctx.fillStyle = this.color;
                 ctx.font = '16px Arial';
                 ctx.textAlign = 'center';
@@ -155,13 +148,13 @@
                 const { startX, startY, binWidth, rowHeight } = getBoardMetrics();
                 
                 this.x = startX + this.col * binWidth;
-                this.y = startY - rowHeight * 4; // 從更高處落下
+                this.y = startY - rowHeight * 4; 
                 
                 this.targetX = this.x;
                 this.targetY = this.y;
                 this.progress = 1;
                 this.isLanded = false;
-                this.history = []; 
+                this.history =[]; 
             }
 
             calculateNextStep() {
@@ -176,26 +169,21 @@
                     
                     binCounts[finalBin]++;
                     
-                    // 特效
                     const cx = startX + finalBin * binWidth;
                     floatingTexts.push(new FloatingText(cx, baseline - 20, grades[finalBin], this.color));
                     
-                    // --- 檢查是否觸線 (Game Over Check) ---
                     const blockHeight = 8;
                     const gap = 3;
                     const currentStackHeight = binCounts[finalBin] * (blockHeight + gap);
                     const stackTopY = baseline - currentStackHeight;
 
-                    // 如果方塊頂部觸及或超過目標線
                     if (stackTopY <= targetLineY) { 
                         isGameOver = true;
-                        finalResult = grades[finalBin]; // 記錄觸發結束的等級
+                        finalResult = grades[finalBin]; 
                     }
-                    // ------------------------------------
                     return;
                 }
 
-                // 隨機擾動
                 let bounce = (Math.random() < 0.5) ? -0.5 : 0.5;
                 this.col += bounce;
 
@@ -227,7 +215,6 @@
             draw() {
                 if (this.isLanded) return;
                 
-                // 拖尾
                 if (this.history.length > 1) {
                     ctx.beginPath();
                     ctx.moveTo(this.history[0].x, this.history[0].y);
@@ -242,7 +229,6 @@
                     ctx.globalAlpha = 1;
                 }
 
-                // 球體
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
                 ctx.fillStyle = this.color;
@@ -253,16 +239,15 @@
         function drawEnvironment() {
             const { startX, startY, binWidth, rowHeight, targetLineY, baseline } = getBoardMetrics();
 
-            // 1. 繪製那條線 (目標線)
-            // 極簡設計：一條單純的、帶有壓迫感的紅線
+            // 1. 目標線
             ctx.beginPath();
             ctx.moveTo(0, targetLineY);
             ctx.lineTo(W, targetLineY);
-            ctx.strokeStyle = 'rgba(255, 60, 60, 0.6)'; // 半透明紅
+            ctx.strokeStyle = 'rgba(255, 60, 60, 0.6)';
             ctx.lineWidth = 1.5;
             ctx.stroke();
 
-            // 2. 釘板點 (背景)
+            // 2. 釘板點
             ctx.fillStyle = '#1e1f26';
             for (let r = 0; r <= ROWS; r++) {
                 for (let c = 0; c < COLS; c++) {
@@ -283,93 +268,103 @@
             const gap = 3;
             
             ctx.textAlign = 'center';
-            ctx.font = '12px Arial'; // 標籤字體調小，更精緻
+            ctx.font = '12px Arial'; 
 
             for (let i = 0; i < COLS; i++) {
                 const cx = startX + i * binWidth;
-                
-                // 堆疊方塊
                 const stackHeight = binCounts[i] * (blockHeight + gap);
                 
                 for (let b = 0; b < binCounts[i]; b++) {
                     const by = baseline - (b + 1) * (blockHeight + gap);
-                    
-                    // 顏色邏輯：越接近線越紅
                     const distToLine = by - targetLineY;
                     let blockColor;
                     
                     if (distToLine < 50) {
-                        blockColor = '#ff4444'; // 危險
+                        blockColor = '#ff4444'; 
                     } else if (distToLine < 150) {
-                        blockColor = '#aa5555'; // 警告
+                        blockColor = '#aa5555'; 
                     } else {
-                        blockColor = '#444'; // 安全（沈默的灰）
+                        blockColor = '#444'; 
                     }
 
                     ctx.fillStyle = blockColor;
                     ctx.fillRect(cx - binWidth * 0.35, by, binWidth * 0.7, blockHeight);
                 }
 
-                // 底部等級標籤
                 ctx.fillStyle = '#666';
                 ctx.fillText(grades[i], cx, baseline + 25);
             }
 
-            // 4. 充能指示器 (僅在遊戲進行中顯示，且非常極簡)
+            // 4. 無文字、位於紅線上方的蓄力條
             if (!isGameOver) {
-                const btnY = H * 0.9; 
-                // 只畫一個圓圈，沒有複雜裝飾
+                const barMaxWidth = 400; // 電腦端最大寬度限制
+                const barWidth = Math.min(W * 0.7, barMaxWidth); // 響應式寬度：螢幕寬的 70%
+                const barHeight = 6; // 蓄力條高度
+                const barX = (W - barWidth) / 2; // 置中對齊
+                
+                // 變更高度：放在紅線(targetLineY)上方，同時與最頂部保留最少 30px 的安全距離
+                const barY = Math.max(30, targetLineY - rowHeight * 1.5); 
+
+                // 繪製蓄力條背景軌道
                 ctx.beginPath();
-                ctx.arc(W / 2, btnY, 25, 0, Math.PI * 2);
-                ctx.strokeStyle = '#333';
-                ctx.lineWidth = 2;
+                ctx.moveTo(barX, barY);
+                ctx.lineTo(barX + barWidth, barY);
+                ctx.strokeStyle = '#222'; // 暗灰色軌道
+                ctx.lineWidth = barHeight;
+                ctx.lineCap = 'round'; // 圓角兩端
                 ctx.stroke();
 
-                if (isCharging || effortLevel > 0) {
+                // 繪製目前蓄力進度
+                if (effortLevel > 0) {
+                    const currentColor = getEffortColor(effortLevel);
+                    const fillWidth = barWidth * effortLevel;
+                    
+                    ctx.save();
                     ctx.beginPath();
-                    ctx.arc(W / 2, btnY, 23 * effortLevel, 0, Math.PI * 2);
-                    ctx.fillStyle = getEffortColor(effortLevel);
-                    ctx.fill();
+                    ctx.moveTo(barX, barY);
+                    ctx.lineTo(barX + fillWidth, barY);
+                    ctx.strokeStyle = currentColor;
+                    ctx.lineWidth = barHeight;
+                    ctx.lineCap = 'round';
+                    
+                    // 加上微微的發光效果，讓高蓄力時更有張力
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = currentColor;
+                    
+                    ctx.stroke();
+                    ctx.restore();
                 }
             }
         }
 
-        // 繪製極簡的結算畫面
         function drawResult() {
             if (!isGameOver) return;
 
-            // 淡入效果
             if (gameOverAlpha < 0.95) gameOverAlpha += 0.02;
 
-            // 1. 全屏遮罩 (黑色)
             ctx.fillStyle = `rgba(10, 10, 12, ${gameOverAlpha})`;
             ctx.fillRect(0, 0, W, H);
 
-            // 2. 只顯示最終等第
             ctx.save();
             ctx.translate(W / 2, H / 2);
             ctx.globalAlpha = gameOverAlpha;
             
-            // 字體大小隨螢幕寬度變化，確保衝擊力
             const fontSize = Math.min(W, H) * 0.15; 
             ctx.font = `bold ${fontSize}px sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             
-            // 文字顏色為純白，帶一點發光
             ctx.fillStyle = '#fff';
             ctx.shadowBlur = 20;
             ctx.shadowColor = '#fff';
             ctx.fillText(finalResult, 0, -20);
             
-            // 取消陰影
             ctx.shadowBlur = 0;
 
-            // 3. 極微小的提示 (藝術裝置通常不顯示 "Tap to Restart"，但為了可用性保留極淡的提示)
             if (gameOverAlpha > 0.8) {
                 ctx.font = '14px sans-serif';
                 ctx.fillStyle = '#444';
-                ctx.fillText("...", 0, 80); // 這裡用省略號或空白代替文字提示，保持神秘感
+                ctx.fillText("...", 0, 80); 
             }
             
             ctx.restore();
@@ -385,7 +380,6 @@
 
             drawEnvironment();
 
-            // 球的物理運算
             for (let i = balls.length - 1; i >= 0; i--) {
                 balls[i].update();
                 balls[i].draw();
@@ -394,7 +388,6 @@
                 }
             }
 
-            // 浮動文字
             for (let i = floatingTexts.length - 1; i >= 0; i--) {
                 floatingTexts[i].update();
                 floatingTexts[i].draw(ctx);
@@ -403,7 +396,6 @@
                 }
             }
 
-            // 如果遊戲結束，繪製結算層
             if (isGameOver) {
                 drawResult();
             }
