@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Process vs Result</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #050508;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            cursor: crosshair;
+        }
+
+        /* 永恆畫布：記錄「過程」留下的生命軌跡 */
+        #processCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* 動態畫布：記錄「急躁結果」與碎裂墜落的灰燼 */
+        #resultCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="processCanvas"></canvas>
+    <canvas id="resultCanvas"></canvas>
+
+<script>
+    const pCanvas = document.getElementById('processCanvas');
+    const pCtx = pCanvas.getContext('2d');
+    const rCanvas = document.getElementById('resultCanvas');
+    const rCtx = rCanvas.getContext('2d');
+
+    let w, h;
+    function init() {
+        w = pCanvas.width = rCanvas.width = window.innerWidth;
+        h = pCanvas.height = rCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', init);
+    init();
+
+    // 互動狀態
+    let isDrawing = false;
+    let lastX = 0, lastY = 0;
+    let lastTime = 0;
+    
+    // 參數設定：決定速度的閾值 (像素/毫秒)
+    const SPEED_THRESHOLD = 0.6; 
+    let hue = 0;
+
+    // 急躁的軌跡 (Result) 與 碎片的物理陣列
+    let currentFastPath = [];
+    let shards = [];
+    let blooms =[];
+
+    // =====================================
+    // 互動事件監聽
+    // =====================================
+    function startDraw(e) {
+        if(e.cancelable) e.preventDefault();
+        isDrawing = true;
+        let px = e.clientX || e.touches[0].clientX;
+        let py = e.clientY || e.touches[0].clientY;
+        lastX = px; 
+        lastY = py;
+        lastTime = Date.now();
+        currentFastPath = [{x: px, y: py}];
+    }
+
+    function draw(e) {
+        if(e.cancelable) e.preventDefault();
+        if (!isDrawing) return;
+
+        let px = e.clientX || e.touches[0].clientX;
+        let py = e.clientY || e.touches[0].clientY;
+        let currentTime = Date.now();
+        
+        let dt = currentTime - lastTime;
+        if (dt === 0) dt = 1; // 避免除以零
+
+        let dx = px - lastX;
+        let dy = py - lastY;
+        let dist = Math.hypot(dx, dy);
+        let speed = dist / dt;
+
+        if (speed > SPEED_THRESHOLD) {
+            // 【重結果 / 急躁模式】：只求快，畫出脆弱乾癟的灰色線條
+            currentFastPath.push({x: px, y: py});
+        } else {
+            // 【重過程 / 沉穩模式】：享受當下，畫出絢麗發光的永恆軌跡
+            
+            // 每次慢下來，就立刻碎裂之前累積的急躁軌跡
+            if (currentFastPath.length > 1) shatterFastPath();
+
+            pCtx.beginPath();
+            pCtx.moveTo(lastX, lastY);
+            pCtx.lineTo(px, py);
+            
+            // 過程是斑斕且發光的
+            hue += 2;
+            pCtx.strokeStyle = `hsl(${hue}, 80%, 60%)`;
+            pCtx.lineWidth = 4 + Math.random() * 2;
+            pCtx.lineCap = 'round';
+            pCtx.lineJoin = 'round';
+            pCtx.shadowBlur = 15;
+            pCtx.shadowColor = `hsl(${hue}, 80%, 60%)`;
+            pCtx.stroke();
+            pCtx.shadowBlur = 0; // 重置
+
+            // 過程的獎勵：偶爾在軌跡上綻放花朵/星芒
+            if (Math.random() < 0.08 && dist > 2) {
+                blooms.push({
+                    x: px, y: py,
+                    color: `hsl(${hue}, 80%, 70%)`,
+                    size: 0,
+                    maxSize: Math.random() * 15 + 10,
+                    alpha: 1
+                });
+            }
+        }
+
+        lastX = px;
+        lastY = py;
+        lastTime = currentTime;
+    }
+
+    function endDraw(e) {
+        if(e.cancelable) e.preventDefault();
+        isDrawing = false;
+        // 一旦停筆（達到結果），所有急躁的軌跡就會因為沒有根基而碎裂墜落
+        if (currentFastPath.length > 1) {
+            shatterFastPath();
+        }
+    }
+
+    rCanvas.addEventListener('mousedown', startDraw);
+    rCanvas.addEventListener('mousemove', draw);
+    window.addEventListener('mouseup', endDraw);
+    
+    rCanvas.addEventListener('touchstart', startDraw, {passive: false});
+    rCanvas.addEventListener('touchmove', draw, {passive: false});
+    window.addEventListener('touchend', endDraw);
+
+    // =====================================
+    // 碎裂邏輯：將急躁的線條變成掉落的灰燼
+    // =====================================
+    function shatterFastPath() {
+        for (let i = 0; i < currentFastPath.length - 1; i++) {
+            let p1 = currentFastPath[i];
+            let p2 = currentFastPath[i+1];
+            
+            // 將線段轉化為具有物理性質的碎片
+            shards.push({
+                x1: p1.x, y1: p1.y,
+                x2: p2.x, y2: p2.y,
+                vx: (Math.random() - 0.5) * 8, // 橫向爆裂
+                vy: (Math.random() - 0.5) * 4 - 2, // 微微向上拋後墜落
+                rot: 0,
+                rotV: (Math.random() - 0.5) * 0.4,
+                alpha: 1
+            });
+        }
+        currentFastPath =[]; // 清空軌跡
+    }
+
+    // =====================================
+    // 動畫主迴圈：處理急躁線條的繪製與碎片的墜落
+    // =====================================
+    function animate() {
+        // 清理動態畫布
+        rCtx.clearRect(0, 0, w, h);
+
+        // 1. 繪製正在快速拖曳、尚未碎裂的「急躁線條」
+        if (currentFastPath.length > 1) {
+            rCtx.beginPath();
+            rCtx.moveTo(currentFastPath[0].x, currentFastPath[0].y);
+            for (let i = 1; i < currentFastPath.length; i++) {
+                // 畫出充滿抖動、不穩定感的乾癟線條
+                let jitterX = (Math.random() - 0.5) * 4;
+                let jitterY = (Math.random() - 0.5) * 4;
+                rCtx.lineTo(currentFastPath[i].x + jitterX, currentFastPath[i].y + jitterY);
+            }
+            rCtx.strokeStyle = '#555555'; // 枯燥的灰色
+            rCtx.lineWidth = 2;
+            rCtx.lineJoin = 'miter';
+            rCtx.stroke();
+        }
+
+        // 2. 處理已經碎裂墜落的灰燼 (The Shattered Result)
+        for (let i = shards.length - 1; i >= 0; i--) {
+            let s = shards[i];
+            
+            s.vy += 0.3; // 重力
+            s.x1 += s.vx; s.y1 += s.vy;
+            s.x2 += s.vx; s.y2 += s.vy;
+            s.alpha -= 0.005; // 逐漸消失
+
+            // 旋轉計算
+            let cx = (s.x1 + s.x2) / 2;
+            let cy = (s.y1 + s.y2) / 2;
+            s.rot += s.rotV;
+
+            rCtx.save();
+            rCtx.translate(cx, cy);
+            rCtx.rotate(s.rot);
+            rCtx.beginPath();
+            rCtx.moveTo(s.x1 - cx, s.y1 - cy);
+            rCtx.lineTo(s.x2 - cx, s.y2 - cy);
+            rCtx.strokeStyle = `rgba(100, 100, 100, ${s.alpha})`;
+            rCtx.lineWidth = 1.5;
+            rCtx.stroke();
+            rCtx.restore();
+
+            if (s.y1 > h && s.y2 > h || s.alpha <= 0) {
+                shards.splice(i, 1);
+            }
+        }
+
+        // 3. 處理「過程」中長出的生命綻放
+        for (let i = blooms.length - 1; i >= 0; i--) {
+            let b = blooms[i];
+            b.size += 0.5;
+            b.alpha -= 0.015;
+
+            pCtx.beginPath();
+            pCtx.arc(b.x, b.y, b.size, 0, Math.PI * 2);
+            pCtx.strokeStyle = b.color.replace(')', `, ${b.alpha})`).replace('hsl', 'hsla');
+            pCtx.lineWidth = 2;
+            pCtx.stroke();
+
+            if (b.alpha <= 0) blooms.splice(i, 1);
+        }
+
+        requestAnimationFrame(animate);
+    }
+
+    animate();
+</script>
+</body>
+</html>

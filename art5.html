@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Absorb? Apply?</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #030305;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            cursor: pointer;
+        }
+
+        #universe {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 永恆畫布：記錄 ABSORB 留下的星雲底蘊 */
+        #eternityCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* 動態畫布：光屑飛舞、拖曳互動與條碼掉落 */
+        #interactiveCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+        }
+
+        /* 結局畫布：靜待 10 秒後的結果（崩潰 或 綻放） */
+        #endgameOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="universe">
+        <canvas id="eternityCanvas"></canvas>
+        <canvas id="interactiveCanvas"></canvas>
+        <div id="endgameOverlay">
+            <canvas id="endgameCanvas"></canvas>
+        </div>
+    </div>
+
+<script>
+    const iCanvas = document.getElementById('interactiveCanvas');
+    const iCtx = iCanvas.getContext('2d');
+    const eCanvas = document.getElementById('eternityCanvas');
+    const eCtx = eCanvas.getContext('2d');
+    const endCanvas = document.getElementById('endgameCanvas');
+    const endCtx = endCanvas.getContext('2d');
+    const endgameOverlay = document.getElementById('endgameOverlay');
+
+    let w, h;
+    
+    // 核心狀態 (加入拖曳位置)
+    let core = { x: 0, y: 0, targetX: 0, targetY: 0 };
+    
+    // 預設為 APPLY (實用/變現) 模式
+    let isAbsorbMode = false; 
+    
+    // 互動與靜止計時器
+    let lastInteractTime = Date.now();
+    let hasReachedEndgame = false;
+    let endgameAnimationId = null;
+
+    // 滑鼠/觸控狀態
+    let isDragging = false;
+    let hasMoved = false;
+    let pressStartTime = 0;
+
+    let motes =[];      // 自由飛舞的光屑
+    let barcodes =[];   // 被 APPLY 規格化的條碼
+    let ashes =[];     // APPLY 產生的死灰廢料
+
+    const colors = {
+        motes:['#e0e7ff', '#c4b5fd', '#fef08a', '#93c5fd']
+    };
+
+    const APPLY_SQ_SIZE = 160; // 巨大的剛性正方形尺寸
+
+    function init() {
+        w = iCanvas.width = eCanvas.width = endCanvas.width = window.innerWidth;
+        h = iCanvas.height = eCanvas.height = endCanvas.height = window.innerHeight;
+        
+        core.x = core.targetX = w / 2;
+        core.y = core.targetY = h / 2;
+
+        eCtx.fillStyle = '#030305';
+        eCtx.fillRect(0, 0, w, h);
+    }
+    window.addEventListener('resize', init);
+    init();
+
+    // ==========================================
+    // 互動事件：點擊切換、拖曳移動
+    // ==========================================
+    function resetIdle() {
+        lastInteractTime = Date.now();
+        if (hasReachedEndgame) {
+            hasReachedEndgame = false;
+            endgameOverlay.style.opacity = '0';
+            if(endgameAnimationId) cancelAnimationFrame(endgameAnimationId);
+            endCtx.clearRect(0, 0, w, h);
+        }
+    }
+
+    function handlePointerDown(e) {
+        if (e.cancelable) e.preventDefault();
+        isDragging = true;
+        hasMoved = false;
+        pressStartTime = Date.now();
+        resetIdle();
+        
+        let px = e.clientX || e.touches[0].clientX;
+        let py = e.clientY || e.touches[0].clientY;
+        core.targetX = px; core.targetY = py;
+    }
+
+    function handlePointerMove(e) {
+        if (e.cancelable) e.preventDefault();
+        if (!isDragging) return;
+        
+        let px = e.clientX || e.touches[0].clientX;
+        let py = e.clientY || e.touches[0].clientY;
+        
+        if (Math.hypot(px - core.targetX, py - core.targetY) > 5) {
+            hasMoved = true;
+        }
+        
+        core.targetX = px; core.targetY = py;
+        resetIdle();
+    }
+
+    function handlePointerUp(e) {
+        if (e.cancelable) e.preventDefault();
+        isDragging = false;
+        
+        // 若沒有明顯移動且點擊時間短，則視為切換模式的「點擊」
+        if (!hasMoved && Date.now() - pressStartTime < 300) {
+            isAbsorbMode = !isAbsorbMode;
+            // 清空畫布重新開始
+            eCtx.fillStyle = '#030305';
+            eCtx.fillRect(0, 0, w, h);
+            motes =[]; barcodes =[]; ashes =[];
+        }
+        resetIdle();
+    }
+
+    iCanvas.addEventListener('mousedown', handlePointerDown);
+    iCanvas.addEventListener('mousemove', handlePointerMove);
+    window.addEventListener('mouseup', handlePointerUp);
+    
+    iCanvas.addEventListener('touchstart', handlePointerDown, {passive: false});
+    iCanvas.addEventListener('touchmove', handlePointerMove, {passive: false});
+    window.addEventListener('touchend', handlePointerUp);
+
+    // ==========================================
+    // 光屑生成與動態
+    // ==========================================
+    function spawnMote() {
+        motes.push({
+            x: Math.random() < 0.5 ? -20 : w + 20,
+            y: Math.random() * h,
+            vx: (Math.random() - 0.5) * 2,
+            vy: (Math.random() - 0.5) * 2,
+            color: colors.motes[Math.floor(Math.random() * colors.motes.length)],
+            size: Math.random() * 2 + 1.5,
+            wobble: Math.random() * Math.PI * 2,
+            history:[]
+        });
+    }
+
+    setInterval(() => {
+        if (!hasReachedEndgame && motes.length < 150) {
+            spawnMote();
+            if(!isAbsorbMode) spawnMote(); // APPLY 模式消耗更大
+        }
+    }, 40);
+
+    // 生成等寬度條碼的黑白線段
+    function generateBarcodePattern(width) {
+        let pattern =[]; let currX = 0;
+        while(currX < width) {
+            let lineW = Math.random() * 4 + 1;
+            if (currX + lineW > width) lineW = width - currX;
+            pattern.push({ x: currX, w: lineW, isBlack: Math.random() > 0.4 });
+            currX += lineW;
+        }
+        return pattern;
+    }
+
+    function animate() {
+        iCtx.fillStyle = 'rgba(3, 3, 5, 0.35)'; // 保留微弱殘影
+        iCtx.fillRect(0, 0, w, h);
+
+        // 核心緩動跟隨游標
+        core.x += (core.targetX - core.x) * 0.15;
+        core.y += (core.targetY - core.y) * 0.15;
+
+        let timeIdle = Date.now() - lastInteractTime;
+        if (timeIdle > 10000 && !hasReachedEndgame) {
+            hasReachedEndgame = true;
+            triggerEndgame();
+        }
+
+        if (!hasReachedEndgame) {
+            drawCore();
+            handleMotes();
+            handleBarcodesAndAshes();
+        }
+
+        requestAnimationFrame(animate);
+    }
+
+    // ==========================================
+    // 繪製核心
+    // ==========================================
+    function drawCore() {
+        iCtx.save();
+        iCtx.translate(core.x, core.y);
+
+        if (isAbsorbMode) {
+            // ABSORB (初代視覺)：有機、呼吸、溫柔發光圓球
+            iCtx.globalCompositeOperation = 'lighter';
+            let pulse = Math.sin(Date.now() * 0.002) * 15;
+            let currentRadius = Math.max(20, 45 + pulse);
+            
+            let grad = iCtx.createRadialGradient(0, 0, 0, 0, 0, currentRadius * 2);
+            grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+            grad.addColorStop(0.2, 'rgba(16, 185, 129, 0.9)'); 
+            grad.addColorStop(0.6, 'rgba(139, 92, 246, 0.4)'); 
+            grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            
+            iCtx.fillStyle = grad;
+            iCtx.beginPath();
+            iCtx.arc(0, 0, currentRadius * 2, 0, Math.PI * 2);
+            iCtx.fill();
+
+            iCtx.strokeStyle = `rgba(245, 158, 11, ${0.5 + Math.sin(Date.now()*0.002)*0.3})`;
+            iCtx.lineWidth = 2;
+            iCtx.beginPath();
+            iCtx.arc(0, 0, currentRadius * 0.8, 0, Math.PI * 2);
+            iCtx.stroke();
+            iCtx.globalCompositeOperation = 'source-over';
+
+        } else {
+            // APPLY：巨大的紅色正方形掃描框
+            let halfSq = APPLY_SQ_SIZE / 2;
+            
+            iCtx.strokeStyle = 'rgba(239, 68, 68, 0.9)';
+            iCtx.lineWidth = 4;
+            iCtx.strokeRect(-halfSq, -halfSq, APPLY_SQ_SIZE, APPLY_SQ_SIZE);
+
+            // 內部的機械瞄準刻度
+            iCtx.lineWidth = 1;
+            iCtx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
+            iCtx.beginPath(); iCtx.moveTo(0, -halfSq); iCtx.lineTo(0, -halfSq + 20); iCtx.stroke();
+            iCtx.beginPath(); iCtx.moveTo(0, halfSq); iCtx.lineTo(0, halfSq - 20); iCtx.stroke();
+            iCtx.beginPath(); iCtx.moveTo(-halfSq, 0); iCtx.lineTo(-halfSq + 20, 0); iCtx.stroke();
+            iCtx.beginPath(); iCtx.moveTo(halfSq, 0); iCtx.lineTo(halfSq - 20, 0); iCtx.stroke();
+
+            // 上下掃描的雷射
+            let laserY = -halfSq + ((Date.now() * 0.1) % APPLY_SQ_SIZE);
+            iCtx.beginPath();
+            iCtx.moveTo(-halfSq, laserY);
+            iCtx.lineTo(halfSq, laserY);
+            iCtx.strokeStyle = '#ef4444';
+            iCtx.stroke();
+            iCtx.fillStyle = 'rgba(239, 68, 68, 0.15)';
+            iCtx.fillRect(-halfSq, laserY, APPLY_SQ_SIZE, halfSq - laserY);
+        }
+        iCtx.restore();
+    }
+
+    // ==========================================
+    // 錯配與吸收邏輯 (光屑跟隨核心)
+    // ==========================================
+    function handleMotes() {
+        for (let i = motes.length - 1; i >= 0; i--) {
+            let m = motes[i];
+            
+            m.wobble += 0.1;
+            // 光屑受到可移動核心的吸引
+            let dx = core.x - m.x;
+            let dy = core.y - m.y;
+            let dist = Math.hypot(dx, dy);
+
+            m.history.push({x: m.x, y: m.y});
+            if(m.history.length > 8) m.history.shift();
+
+            if (!isAbsorbMode) {
+                // APPLY 模式引力：強烈且生硬
+                let force = 0.8;
+                m.vx += (dx / dist) * force;
+                m.vy += (dy / dist) * force;
+                m.vx *= 0.9; m.vy *= 0.9;
+                
+                // 直線牽引光束
+                if (dist < APPLY_SQ_SIZE) {
+                    iCtx.beginPath();
+                    iCtx.moveTo(m.x, m.y);
+                    iCtx.lineTo(core.x, core.y);
+                    iCtx.strokeStyle = 'rgba(239, 68, 68, 0.05)';
+                    iCtx.stroke();
+                }
+            } else {
+                // ABSORB 模式引力：有機且飄逸
+                let force = 0.06;
+                m.vx += (dx / dist) * force + Math.cos(m.wobble) * 0.2;
+                m.vy += (dy / dist) * force + Math.sin(m.wobble) * 0.2;
+                m.vx *= 0.98; m.vy *= 0.98;
+            }
+
+            m.x += m.vx; m.y += m.vy;
+
+            // 畫出光屑與拖影
+            iCtx.beginPath();
+            if (m.history.length > 0) {
+                iCtx.moveTo(m.history[0].x, m.history[0].y);
+                for(let pt of m.history) iCtx.lineTo(pt.x, pt.y);
+            }
+            iCtx.strokeStyle = m.color;
+            iCtx.lineWidth = m.size;
+            iCtx.lineCap = 'round';
+            iCtx.stroke();
+            
+            iCtx.beginPath();
+            iCtx.arc(m.x, m.y, m.size, 0, Math.PI * 2);
+            iCtx.fillStyle = '#fff';
+            iCtx.fill();
+
+            // 碰觸判斷
+            if (!isAbsorbMode) {
+                // 進入巨大方形的範圍：被強制抹殺光芒，列印成「完全等寬」的條碼
+                if (Math.abs(dx) < APPLY_SQ_SIZE/2 && Math.abs(dy) < APPLY_SQ_SIZE/2) {
+                    let bw = APPLY_SQ_SIZE; // 寬度死死鎖定與紅框相同
+                    let bh = 15 + Math.random() * 15; // 高度切片隨機，營造列印碎紙感
+                    
+                    barcodes.push({
+                        x: core.x - bw / 2, // 完美對齊紅框左側
+                        y: core.y + APPLY_SQ_SIZE / 2, // 從紅框最底部列印出來
+                        w: bw, 
+                        h: bh,
+                        vy: 2 + Math.random() * 3,
+                        pattern: generateBarcodePattern(bw)
+                    });
+
+                    // 靈魂被榨乾後的死灰碎屑向兩側噴出
+                    for(let j=0; j<3; j++) {
+                        ashes.push({
+                            x: core.x + (Math.random() > 0.5 ? -bw/2 : bw/2), // 從兩側削落
+                            y: core.y + APPLY_SQ_SIZE/2,
+                            vx: (Math.random() - 0.5) * 8,
+                            vy: (Math.random() - 0.5) * 2 - 1,
+                            size: Math.random() * 3 + 1
+                        });
+                    }
+                    motes.splice(i, 1);
+                }
+            } else {
+                // 進入圓形範圍：溫柔吸收，化作永恆底蘊
+                if (dist < 45) {
+                    // 初代的柔軟星雲畫法
+                    eCtx.beginPath();
+                    eCtx.arc(core.x + (Math.random()-0.5)*30, core.y + (Math.random()-0.5)*30, Math.random()*25 + 10, 0, Math.PI * 2);
+                    eCtx.fillStyle = m.color;
+                    eCtx.globalAlpha = 0.05;
+                    eCtx.fill();
+                    eCtx.globalAlpha = 1.0;
+                    
+                    motes.splice(i, 1);
+                }
+            }
+        }
+    }
+
+    function handleBarcodesAndAshes() {
+        for (let i = barcodes.length - 1; i >= 0; i--) {
+            let b = barcodes[i];
+            b.y += b.vy;
+            iCtx.save();
+            iCtx.translate(b.x, b.y);
+            
+            iCtx.fillStyle = '#ffffff'; // 白底
+            iCtx.fillRect(0, 0, b.w, b.h);
+            
+            iCtx.fillStyle = '#000000'; // 黑線
+            b.pattern.forEach(p => { 
+                if (p.isBlack) iCtx.fillRect(p.x, 0, p.w, b.h); 
+            });
+            
+            iCtx.restore();
+            
+            if (b.y > h) barcodes.splice(i, 1);
+        }
+
+        for (let i = ashes.length - 1; i >= 0; i--) {
+            let a = ashes[i];
+            a.vy += 0.2; 
+            a.x += a.vx; a.y += a.vy;
+            iCtx.fillStyle = '#555555'; 
+            iCtx.fillRect(a.x, a.y, a.size, a.size);
+            if (a.y > h) ashes.splice(i, 1);
+        }
+    }
+
+    // ==========================================
+    // 十秒結局 (明確的崩潰 vs 綻放)
+    // ==========================================
+    function triggerEndgame() {
+        endgameOverlay.style.opacity = '1';
+        // 結局特效發生在核心最後停留的位置
+        let cx = core.x; let cy = core.y;
+        let timeObj = { t: 0 };
+
+        if (!isAbsorbMode) {
+            // APPLY 結局：嚴重的數位崩潰與系統死機 (Glitch Error)
+            function drawApplyEndgame() {
+                timeObj.t += 1;
+                let intensity = Math.min(1, timeObj.t / 100);
+                
+                // 覆蓋一層令人不安的暗沉背景
+                endCtx.fillStyle = `rgba(10, 5, 5, ${intensity * 0.3})`;
+                endCtx.fillRect(0, 0, w, h);
+                
+                endCtx.save();
+                endCtx.translate(cx, cy);
+
+                // 畫面出現大量失控的等寬條碼殘影 (象徵無意義數據堆疊導致當機)
+                if (Math.random() < 0.6) {
+                    let gx = (Math.random() - 0.5) * w * 2;
+                    let gy = (Math.random() - 0.5) * h * 2;
+                    let gh = Math.random() * h;
+                    endCtx.fillStyle = Math.random() > 0.5 ? `rgba(255,255,255,${intensity * 0.8})` : `rgba(30,30,30,${intensity})`;
+                    // 崩潰的殘影也保持 APPLY_SQ_SIZE 的寬度
+                    endCtx.fillRect(gx, gy - h/2, APPLY_SQ_SIZE, gh);
+                }
+
+                // 巨大的正方形破裂、劇烈抖動
+                let shakeX = (Math.random() - 0.5) * 20 * intensity;
+                let shakeY = (Math.random() - 0.5) * 20 * intensity;
+                
+                endCtx.strokeStyle = `rgba(239, 68, 68, ${intensity})`;
+                endCtx.lineWidth = 10 + Math.random() * 10;
+                let sq = APPLY_SQ_SIZE * (1 + intensity * 0.5); // 膨脹
+                
+                // 畫出錯位的殘影 (Glitch)
+                endCtx.strokeRect(-sq/2 + shakeX, -sq/2, sq, sq);
+                endCtx.strokeStyle = `rgba(0, 255, 255, ${intensity * 0.5})`;
+                endCtx.strokeRect(-sq/2 - shakeX, -sq/2 + shakeY, sq, sq);
+
+                // 核心內部出現象徵「死機」的雜亂紅白色塊
+                for(let i=0; i<3; i++){
+                    endCtx.fillStyle = Math.random() > 0.3 ? 'red' : 'white';
+                    endCtx.fillRect((Math.random()-0.5)*sq, (Math.random()-0.5)*sq, Math.random()*80, Math.random()*20);
+                }
+
+                endCtx.restore();
+                endgameAnimationId = requestAnimationFrame(drawApplyEndgame);
+            }
+            drawApplyEndgame();
+
+        } else {
+            // ABSORB 結局：花狀光芒綻放
+            function drawAbsorbEndgame() {
+                timeObj.t += 1;
+                endCtx.clearRect(0, 0, w, h);
+                endCtx.save();
+                endCtx.translate(cx, cy);
+                
+                let maxRadius = Math.min(w, h) * 0.5;
+                let currentRadius = Math.min(maxRadius, timeObj.t * 2); 
+                
+                endCtx.globalCompositeOperation = 'screen';
+
+                for(let arms = 0; arms < 5; arms++) {
+                    endCtx.rotate(timeObj.t * 0.001);
+                    
+                    for(let i = 0; i < 12; i++) {
+                        endCtx.rotate((Math.PI * 2) / 12);
+                        
+                        let px = 0; let py = currentRadius * 0.5;
+                        let alpha = Math.min(0.6, timeObj.t * 0.003);
+                        
+                        endCtx.beginPath();
+                        endCtx.ellipse(px, py, currentRadius*0.1, currentRadius*0.5, 0, 0, Math.PI * 2);
+                        endCtx.fillStyle = colors.motes[i % colors.motes.length].replace(')', `, ${alpha * 0.5})`).replace('rgb', 'rgba');
+                        endCtx.fill();
+                        
+                        if(Math.random() < 0.1) {
+                            endCtx.beginPath();
+                            endCtx.arc(px + (Math.random()-0.5)*40, py + (Math.random()-0.5)*100, Math.random()*2, 0, Math.PI*2);
+                            endCtx.fillStyle = '#fff';
+                            endCtx.fill();
+                        }
+                    }
+                }
+
+                let centerGlow = endCtx.createRadialGradient(0,0,0, 0,0, currentRadius*0.3);
+                centerGlow.addColorStop(0, `rgba(255,255,255, ${Math.min(1, timeObj.t*0.01)})`);
+                centerGlow.addColorStop(1, 'rgba(255,255,255,0)');
+                endCtx.fillStyle = centerGlow;
+                endCtx.beginPath();
+                endCtx.arc(0,0, currentRadius*0.3, 0, Math.PI*2);
+                endCtx.fill();
+
+                endCtx.restore();
+                endgameAnimationId = requestAnimationFrame(drawAbsorbEndgame);
+            }
+            drawAbsorbEndgame();
+        }
+    }
+
+    animate();
+</script>
+</body>
+</html>
