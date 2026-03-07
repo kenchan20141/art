@@ -56,19 +56,56 @@
             canvas.width = width;
             canvas.height = height;
 
+            // 核心位置
             core.x = width / 2;
             core.y = height / 2;
             core.r = Math.min(width, height) * 0.22;
 
+            // 動力源固定在左下方
             engine.x = width * 0.15;
             engine.y = height * 0.85;
 
-            // 修訂：確保節點數量永遠補足至 3 顆
-            // 原本的 if (nodes.length === 0) 在某些刷新情況下可能失效，改用 while 確保數量
+            // 清空舊節點，確保重新佈局時重新計算位置
+            nodes = [];
+
+            // 修訂：確保節點數量為 3，並強制檢查與動力源的距離
             while (nodes.length < 3) {
+                let safePositionFound = false;
+                let nx, ny;
+                let attempts = 0;
+
+                // 嘗試尋找一個不會立刻連接的位置
+                while (!safePositionFound && attempts < 100) {
+                    // 策略：限制 Y 軸生成範圍在畫面上半部 (0.1 ~ 0.6)，避開底部的 Engine (0.85)
+                    nx = width * 0.1 + Math.random() * (width * 0.8);
+                    ny = height * 0.1 + Math.random() * (height * 0.5);
+
+                    // 計算與動力源的距離
+                    let dx = nx - engine.x;
+                    let dy = ny - engine.y;
+                    let distToEngine = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // 計算與核心的距離 (避免生成在核心裡面很難點)
+                    let cdx = nx - core.x;
+                    let cdy = ny - core.y;
+                    let distToCore = Math.sqrt(cdx * cdx + cdy * cdy);
+
+                    // 條件：距離 Engine 必須大於 200 (閾值是160)，且不重疊核心
+                    if (distToEngine > 200 && distToCore > core.r + 30) {
+                        safePositionFound = true;
+                    }
+                    attempts++;
+                }
+
+                // 如果嘗試 100 次都失敗 (極端小螢幕)，則強制放在右上角
+                if (!safePositionFound) {
+                    nx = width * 0.8;
+                    ny = height * 0.2;
+                }
+
                 nodes.push({
-                    x: width * 0.2 + Math.random() * (width * 0.6),
-                    y: height * 0.2 + Math.random() * (height * 0.6),
+                    x: nx,
+                    y: ny,
                     r: 15,
                     vx: (Math.random() - 0.5) * 0.5,
                     vy: (Math.random() - 0.5) * 0.5,
