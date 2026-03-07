@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>&#8203;</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #08080a;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let progress = 0;
+        const maxProgress = 1000;
+        let shake = 0;
+        let sparks =[];
+        let state = 'playing'; // playing, ending_brute, ending_system
+        let time = 0;
+
+        // 核心物件
+        let core = { x: 0, y: 0, r: 100, angle: 0, lastAngle: 0, isDragging: false };
+        let engine = { x: 0, y: 0, r: 25, angle: 0 };
+        let nodes =[];
+        let links =[];
+        let isPowered = false;
+
+        // 結局動畫變數
+        let petrifyProgress = 0; 
+        let dust =[];
+        let ascensionTimer = 0;
+
+        function initLayout() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+
+            core.x = width / 2;
+            core.y = height / 2;
+            core.r = Math.min(width, height) * 0.22;
+
+            engine.x = width * 0.15;
+            engine.y = height * 0.85;
+
+            if (nodes.length === 0) {
+                for (let i = 0; i < 3; i++) {
+                    nodes.push({
+                        x: width * 0.2 + Math.random() * (width * 0.6),
+                        y: height * 0.2 + Math.random() * (height * 0.6),
+                        r: 15,
+                        vx: (Math.random() - 0.5) * 0.5,
+                        vy: (Math.random() - 0.5) * 0.5,
+                        isDragging: false,
+                        offsetX: 0,
+                        offsetY: 0,
+                        isPowered: false
+                    });
+                }
+            }
+        }
+
+        window.addEventListener('resize', initLayout);
+        initLayout();
+
+        function getPos(e) {
+            if (e.touches && e.touches.length > 0) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            return { x: e.clientX, y: e.clientY };
+        }
+
+        let draggedItem = null;
+
+        function handleStart(e) {
+            if (state !== 'playing') return;
+            let pos = getPos(e);
+
+            for (let n of nodes) {
+                let dx = pos.x - n.x;
+                let dy = pos.y - n.y;
+                if (dx * dx + dy * dy < (n.r + 25) * (n.r + 25)) {
+                    draggedItem = { type: 'node', target: n };
+                    n.isDragging = true;
+                    n.offsetX = dx;
+                    n.offsetY = dy;
+                    return;
+                }
+            }
+
+            let dx = pos.x - core.x;
+            let dy = pos.y - core.y;
+            if (dx * dx + dy * dy < core.r * core.r) {
+                if (isPowered) return;
+                draggedItem = { type: 'core', target: core };
+                core.isDragging = true;
+                core.lastAngle = Math.atan2(dy, dx);
+            }
+        }
+
+        function handleMove(e) {
+            if (!draggedItem || state !== 'playing') return;
+            let pos = getPos(e);
+
+            if (draggedItem.type === 'node') {
+                let n = draggedItem.target;
+                n.x = pos.x - n.offsetX;
+                n.y = pos.y - n.offsetY;
+            } 
+            else if (draggedItem.type === 'core') {
+                let dx = pos.x - core.x;
+                let dy = pos.y - core.y;
+                let currentAngle = Math.atan2(dy, dx);
+                let delta = currentAngle - core.lastAngle;
+                
+                if (delta > Math.PI) delta -= Math.PI * 2;
+                if (delta < -Math.PI) delta += Math.PI * 2;
+
+                let workDone = Math.abs(delta);
+                if (workDone > 0.01) {
+                    core.angle += delta;
+                    progress += workDone * 3; // 極度緩慢的進度 (五倍阻力)
+                    shake = Math.min(10, shake + workDone * 15);
+
+                    for (let i = 0; i < 2; i++) {
+                        sparks.push({
+                            x: pos.x, y: pos.y,
+                            vx: (Math.random() - 0.5) * 12,
+                            vy: (Math.random() - 0.5) * 12,
+                            life: 1
+                        });
+                    }
+                }
+                core.lastAngle = currentAngle;
+                checkWin();
+            }
+        }
+
+        function handleEnd() {
+            if (draggedItem) {
+                draggedItem.target.isDragging = false;
+                draggedItem = null;
+            }
+        }
+
+        window.addEventListener('mousedown', handleStart);
+        window.addEventListener('touchstart', handleStart, { passive: false });
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('touchmove', handleMove, { passive: false });
+        window.addEventListener('mouseup', handleEnd);
+        window.addEventListener('touchend', handleEnd);
+
+        function checkNetwork() {
+            let threshold = 160;
+            let allObjects = [engine, ...nodes, core];
+            let adj = Array.from({length: allObjects.length}, () => []);
+            links =[];
+
+            for (let i = 0; i < allObjects.length; i++) {
+                for (let j = i + 1; j < allObjects.length; j++) {
+                    let o1 = allObjects[i];
+                    let o2 = allObjects[j];
+                    let distThreshold = threshold + (i === 4 || j === 4 ? core.r * 0.5 : 0);
+                    let dx = o1.x - o2.x;
+                    let dy = o1.y - o2.y;
+                    if (dx * dx + dy * dy < distThreshold * distThreshold) {
+                        adj[i].push(j);
+                        adj[j].push(i);
+                        links.push({ o1, o2 });
+                    }
+                }
+            }
+
+            let queue = [0];
+            let visited = new Set([0]);
+            let connectedToEngine = new Set([0]);
+
+            while (queue.length > 0) {
+                let curr = queue.shift();
+                for (let neighbor of adj[curr]) {
+                    if (!visited.has(neighbor)) {
+                        visited.add(neighbor);
+                        connectedToEngine.add(neighbor);
+                        queue.push(neighbor);
+                    }
+                }
+            }
+
+            for (let i = 1; i <= 3; i++) {
+                nodes[i-1].isPowered = connectedToEngine.has(i);
+            }
+            isPowered = connectedToEngine.has(4);
+        }
+
+        function checkWin() {
+            if (progress >= maxProgress && state === 'playing') {
+                if (isPowered) {
+                    state = 'ending_system'; // 結局B：昇華
+                } else {
+                    state = 'ending_brute';  // 結局A：僵化/石化
+                    petrifyProgress = 0;
+                    shake = 40; // 沉重的卡死震動
+                    core.isDragging = false;
+                }
+            }
+        }
+
+        // 精緻設計的順時針旋轉誘導箭頭
+        function drawBaitArrow() {
+            if (isPowered || state !== 'playing') return;
+            
+            ctx.save();
+            ctx.translate(core.x, core.y);
+            
+            // 讓箭頭繞著核心順時針滑動，並帶有呼吸節奏
+            let slide = time * 2.5;
+            ctx.rotate(slide);
+            
+            let pulse = Math.sin(time * 5) * 0.3 + 0.5;
+            ctx.strokeStyle = `rgba(200, 200, 215, ${0.1 + pulse * 0.4})`;
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            let arrowRadius = core.r + 55;
+
+            // 畫出兩段對稱的弧形箭頭
+            for (let i = 0; i < 2; i++) {
+                ctx.save();
+                ctx.rotate(i * Math.PI); 
+                
+                ctx.beginPath();
+                ctx.arc(0, 0, arrowRadius, 0, Math.PI * 0.5);
+                ctx.stroke();
+
+                let headAngle = Math.PI * 0.5;
+                let hx = Math.cos(headAngle) * arrowRadius;
+                let hy = Math.sin(headAngle) * arrowRadius;
+                
+                ctx.translate(hx, hy);
+                ctx.rotate(headAngle + Math.PI / 2); // 指向切線方向
+                
+                ctx.beginPath();
+                ctx.moveTo(-16, -12);
+                ctx.lineTo(0, 0);
+                ctx.lineTo(-16, 12);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+
+            ctx.restore();
+        }
+
+        function loop() {
+            time += 0.02;
+
+            ctx.fillStyle = 'rgba(8, 8, 10, 0.4)';
+            ctx.fillRect(0, 0, width, height);
+
+            if (state === 'playing') {
+                checkNetwork();
+
+                // 遺忘曲線 (死磕的懲罰)
+                if (!core.isDragging && !isPowered && progress > 0) {
+                    progress = Math.max(0, progress - 0.8);
+                }
+
+                if (isPowered) {
+                    core.angle -= 0.06;
+                    progress += 5;
+                    shake = 0;
+                    checkWin();
+                }
+
+                for (let n of nodes) {
+                    if (!n.isDragging && !n.isPowered) {
+                        n.x += n.vx;
+                        n.y += n.vy;
+                        if (n.x < 0 || n.x > width) n.vx *= -1;
+                        if (n.y < 0 || n.y > height) n.vy *= -1;
+                    }
+                }
+            } else if (state === 'ending_brute') {
+                petrifyProgress = Math.min(1, petrifyProgress + 0.004);
+                
+                // 產生乾枯的灰塵
+                if (petrifyProgress < 1 && Math.random() < 0.4) {
+                    dust.push({
+                        x: core.x + (Math.random()-0.5)*core.r*2.5,
+                        y: core.y + (Math.random()-0.5)*core.r*2.5,
+                        vx: 0,
+                        vy: Math.random() * 1 + 0.5,
+                        size: Math.random() * 2 + 1,
+                        life: 1
+                    });
+                }
+            }
+
+            shake *= 0.8;
+            let sx = (Math.random() - 0.5) * shake;
+            let sy = (Math.random() - 0.5) * shake;
+
+            ctx.save();
+            ctx.translate(sx, sy);
+
+            drawBaitArrow();
+
+            // 處理結局A（死磕）時，系統與思考能力的黯淡消失
+            let systemOpacity = 1;
+            if (state === 'ending_brute') {
+                systemOpacity = Math.max(0, 1 - petrifyProgress * 2); // 快速消失
+            }
+            ctx.globalAlpha = systemOpacity;
+
+            // 1. 畫邏輯連線
+            if (state !== 'ending_system') {
+                for (let link of links) {
+                    let isLinkPowered = (link.o1 === engine || link.o1.isPowered) && (link.o2 === engine || link.o2.isPowered);
+                    ctx.beginPath();
+                    ctx.moveTo(link.o1.x, link.o1.y);
+                    ctx.lineTo(link.o2.x, link.o2.y);
+                    if (isLinkPowered) {
+                        ctx.strokeStyle = '#00FFC8';
+                        ctx.lineWidth = 4;
+                        ctx.shadowBlur = 15;
+                        ctx.shadowColor = '#00FFC8';
+                    } else {
+                        ctx.strokeStyle = '#333';
+                        ctx.lineWidth = 2;
+                        ctx.shadowBlur = 0;
+                    }
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            // 2. 畫動力源
+            engine.angle += 0.05;
+            ctx.save();
+            ctx.translate(engine.x, engine.y);
+            ctx.rotate(engine.angle);
+            ctx.fillStyle = '#00FFC8';
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#00FFC8';
+            ctx.beginPath();
+            ctx.arc(0, 0, engine.r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#FFF';
+            ctx.fillRect(-engine.r*0.4, -engine.r*0.4, engine.r*0.8, engine.r*0.8);
+            ctx.restore();
+
+            // 3. 畫節點
+            if (state === 'ending_system') {
+                ascensionTimer += 0.02;
+                for (let i = 0; i < nodes.length; i++) {
+                    let n = nodes[i];
+                    let targetX = core.x + Math.cos(ascensionTimer + i * (Math.PI*2/3)) * (core.r * 1.8);
+                    let targetY = core.y + Math.sin(ascensionTimer + i * (Math.PI*2/3)) * (core.r * 1.8);
+                    n.x += (targetX - n.x) * 0.05;
+                    n.y += (targetY - n.y) * 0.05;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(n.x, n.y);
+                    ctx.lineTo(core.x, core.y);
+                    ctx.strokeStyle = `rgba(0, 255, 200, ${Math.min(0.5, ascensionTimer * 0.1)})`;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            }
+
+            for (let n of nodes) {
+                ctx.save();
+                ctx.translate(n.x, n.y);
+                ctx.fillStyle = (n.isPowered || state === 'ending_system') ? '#00FFC8' : '#2a2a35';
+                ctx.beginPath();
+                ctx.arc(0, 0, n.r, 0, Math.PI * 2);
+                ctx.fill();
+                if (n.isPowered || state === 'ending_system') {
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#00FFC8';
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                } else {
+                    ctx.strokeStyle = '#111';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            ctx.globalAlpha = 1; // 恢復透明度畫核心與火花
+
+            // 畫壓力火花
+            for (let i = sparks.length - 1; i >= 0; i--) {
+                let s = sparks[i];
+                s.x += s.vx; s.y += s.vy; s.vy += 0.4; s.life -= 0.03;
+                if (s.life <= 0) { sparks.splice(i, 1); continue; }
+                ctx.fillStyle = `rgba(255, 50, 0, ${s.life})`;
+                ctx.fillRect(s.x, s.y, 3, 3);
+            }
+
+            // 畫僵化灰塵
+            for (let i = dust.length - 1; i >= 0; i--) {
+                let d = dust[i];
+                d.y += d.vy; d.life -= 0.01;
+                if (d.life <= 0) { dust.splice(i, 1); continue; }
+                ctx.fillStyle = `rgba(100, 100, 100, ${d.life})`;
+                ctx.fillRect(d.x, d.y, d.size, d.size);
+            }
+
+            // 4. 畫巨大核心
+            let ratio = Math.min(1, progress / maxProgress);
+            ctx.save();
+            ctx.translate(core.x, core.y);
+            
+            if (state === 'ending_system') {
+                // ============== 結局 B：昇華曼陀羅 ==============
+                core.angle -= 0.02;
+                ctx.rotate(core.angle);
+
+                let bloom = Math.sin(ascensionTimer*2) * 10 + 20;
+                ctx.shadowBlur = bloom;
+                ctx.shadowColor = '#00FFC8';
+
+                for(let layer = 1; layer <= 3; layer++) {
+                    ctx.rotate(ascensionTimer * (layer%2==0 ? 0.05 : -0.05));
+                    ctx.strokeStyle = `rgba(0, 255, 200, ${1 - layer*0.2})`;
+                    ctx.lineWidth = 4 - layer;
+                    
+                    let radius = core.r * (1 + layer*0.2);
+                    ctx.beginPath();
+                    for (let i = 0; i < 8; i++) {
+                        ctx.lineTo(Math.cos(i * Math.PI/4) * radius, Math.sin(i * Math.PI/4) * radius);
+                        ctx.lineTo(Math.cos(i * Math.PI/4 + Math.PI/8) * (radius*0.5), Math.sin(i * Math.PI/4 + Math.PI/8) * (radius*0.5));
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+                
+                ctx.fillStyle = '#001a11';
+                ctx.beginPath();
+                ctx.arc(0, 0, core.r * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+            } else {
+                // ============== 正常狀態 與 結局 A (石化) ==============
+                ctx.rotate(core.angle);
+                
+                let isStressed = (core.isDragging && !isPowered);
+                let coreFill, coreStroke, innerStroke, progressStroke;
+
+                if (state === 'ending_brute') {
+                    // 石化漸變計算：從壓力紅 變成 沉重死寂的生鐵灰
+                    let p = petrifyProgress;
+                    coreFill = `rgb(${51 - p*25}, ${17 - p*2}, ${17 - p*2})`; // #331111 -> #1a0f0f
+                    coreStroke = `rgb(${34 + p*10}, ${34 + p*10}, ${34 + p*10})`; // #222 -> #2c2c2c
+                    innerStroke = `rgb(${17 + p*20}, ${17 + p*20}, ${17 + p*20})`; 
+                    progressStroke = `rgb(${255 - p*200}, ${51 + p*4}, ${p*55})`; // 鮮紅 -> 鐵灰
+                } else {
+                    coreFill = isPowered ? '#004433' : (isStressed ? '#331111' : '#1a1a20');
+                    coreStroke = isPowered ? '#00FFC8' : '#222';
+                    innerStroke = isPowered ? '#008866' : '#111';
+                    progressStroke = isPowered ? '#00FFC8' : (isStressed ? '#FF3300' : '#666');
+                }
+                
+                ctx.fillStyle = coreFill;
+                ctx.beginPath();
+                ctx.arc(0, 0, core.r, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = coreStroke;
+                ctx.lineWidth = 12;
+                for (let i = 0; i < 16; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(core.r - 5, 0);
+                    ctx.lineTo(core.r + 15, 0);
+                    ctx.stroke();
+                    ctx.rotate(Math.PI * 2 / 16);
+                }
+
+                ctx.strokeStyle = innerStroke;
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(0, 0, core.r * 0.6, 0, Math.PI * 2);
+                ctx.stroke();
+                for (let i = 0; i < 4; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(-core.r*0.6, 0);
+                    ctx.lineTo(core.r*0.6, 0);
+                    ctx.stroke();
+                    ctx.rotate(Math.PI / 4);
+                }
+
+                // 在結局A中，畫出將齒輪與外環「鎖死」的沉重鐵釘與銹痕
+                if (state === 'ending_brute' && petrifyProgress > 0) {
+                    ctx.strokeStyle = `rgba(20, 20, 20, ${petrifyProgress})`;
+                    ctx.lineWidth = 8;
+                    for(let i = 0; i < 8; i++) {
+                        ctx.beginPath();
+                        ctx.moveTo(core.r * 0.8, 0);
+                        ctx.lineTo(core.r + 35, 0);
+                        ctx.stroke();
+                        ctx.rotate(Math.PI / 4);
+                    }
+                }
+            }
+            ctx.restore();
+
+            // 5. 畫進度條
+            if (state !== 'ending_system') {
+                ctx.save();
+                ctx.translate(core.x, core.y);
+                ctx.strokeStyle = '#111';
+                ctx.lineWidth = 8;
+                ctx.beginPath();
+                ctx.arc(0, 0, core.r + 35, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // 獲取在上面計算好的進度條顏色 (progressStroke)
+                let isStressed = (core.isDragging && !isPowered);
+                let pStroke = (state === 'ending_brute') ? `rgb(${255 - petrifyProgress*210}, ${51 - petrifyProgress*6}, ${petrifyProgress*45})` 
+                            : (isPowered ? '#00FFC8' : (isStressed ? '#FF3300' : '#666'));
+
+                ctx.strokeStyle = pStroke;
+                // 石化後，進度條變得極度粗糙厚重
+                ctx.lineWidth = state === 'ending_brute' ? 8 + petrifyProgress * 6 : 8; 
+                ctx.lineCap = state === 'ending_brute' ? 'butt' : 'round';
+                ctx.beginPath();
+                ctx.arc(0, 0, core.r + 35, -Math.PI/2, -Math.PI/2 + ratio * Math.PI * 2);
+                ctx.stroke();
+
+                if (!core.isDragging && !isPowered && progress > 0 && state !== 'ending_brute') {
+                    ctx.strokeStyle = `rgba(255, 0, 0, ${0.3 + Math.sin(time*10)*0.2})`;
+                    ctx.stroke();
+                }
+                ctx.restore();
+            } else {
+                ctx.save();
+                ctx.translate(core.x, core.y);
+                ctx.strokeStyle = '#00FFC8';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(0, 0, core.r + 35, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            ctx.restore(); 
+            requestAnimationFrame(loop);
+        }
+
+        loop();
+    </script>
+</body>
+</html>
