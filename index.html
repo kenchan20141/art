@@ -258,6 +258,10 @@
 
 
 
+
+
+
+
 /* ART10 Preview Style */
     .preview-art10 { position: absolute; inset: 0; background: #08080a; display: flex; align-items: center; justify-content: center; overflow: hidden; }
     .art10-core-p { width: 40px; height: 40px; border: 4px dashed #555; border-radius: 50%; position: relative; animation: art10Struggle 6s infinite; }
@@ -280,6 +284,63 @@
         0%, 45% { width: 0; opacity: 0; }
         50%, 100% { width: 60px; opacity: 1; }
     }
+
+
+
+
+
+/* ART11 Preview Style: 定靜的試煉 */
+    .preview-art11 { position: absolute; inset: 0; background: #030303; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    
+    /* 模擬中間的古文閱讀區 */
+    .art11-text-beam { 
+        width: 4px; 
+        height: 60px; 
+        background: #d0d0d0; 
+        box-shadow: 0 0 10px rgba(255,255,255,0.5);
+        animation: art11FocusLoss 4s infinite ease-in-out;
+    }
+
+    /* 模擬彈出的通知視窗 */
+    .art11-popup {
+        position: absolute;
+        width: 30px; 
+        height: 20px; 
+        border-radius: 4px;
+        opacity: 0;
+        animation: art11Distraction 4s infinite ease-in-out;
+    }
+    
+    /* 紅色通知 */
+    .art11-popup:nth-child(2) { background: #ff4444; top: 30%; right: 25%; animation-delay: 0s; }
+    /* 綠色通知 */
+    .art11-popup:nth-child(3) { background: #25d366; bottom: 30%; left: 25%; animation-delay: 2s; }
+
+    @keyframes art11FocusLoss {
+        0%, 10%, 90%, 100% { 
+            height: 80px; 
+            opacity: 1; 
+            filter: blur(0px); 
+            transform: scaleY(1);
+            background: #fff;
+        }
+        40%, 60% { 
+            height: 40px; 
+            opacity: 0.3; 
+            filter: blur(4px); /* 模擬失焦 */
+            transform: scaleY(0.8);
+            background: #555;
+        }
+    }
+
+    @keyframes art11Distraction {
+        0%, 10%, 90%, 100% { transform: scale(0); opacity: 0; }
+        30% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 15px rgba(255,255,255,0.5); }
+        50% { transform: scale(1); opacity: 0.8; }
+        70% { transform: scale(0); opacity: 0; }
+    }
+
+
 
 
 
@@ -360,7 +421,7 @@
 
 <header class="museum-header">
     <h1>Reflections</h1>
-    <p>一個關於生活反思與學習認知的數位藝術展覽。</p>
+    <p>一個關於生活態度與學習認知的數位藝術展覽。</p>
 </header>
 
 <main class="exhibition-list" id="gallery">
@@ -422,6 +483,15 @@
     subtitle: "用功不是為了感動自己", 
     previewHTML: `<div class="preview-art10"><div class="art10-core-p"></div><div class="art10-node-p"></div><div class="art10-line-p"></div></div>`, 
     analysis: "這件互動裝置揭示了學習與工作中關於努力的真相。如果你試圖直接轉動輪子，你會發現阻力巨大，車輪會震動發紅，最終甚至會石化卡死——這象徵著盲目刷題與死記硬背的末路，越努力越絕望。唯有先將散落的知識節點與作為發亮的動力源接通，建立起完整的能量網絡，車輪才能在幾乎不費力的情況下自動運轉。作品提醒我們，運用聰明的方法做事遠比單純的蠻力更有效益。" 
+},
+{ 
+    id: 11, 
+    url: "art11.html", 
+    num: "NO. 11", 
+    title: "定靜的試煉", 
+    subtitle: "在躁動世界重拾閱讀本能", 
+    previewHTML: `<div class="preview-art11"><div class="art11-text-beam"></div><div class="art11-popup"></div><div class="art11-popup"></div></div>`, 
+    analysis: "這件作品是一場關於專注力的數位修行。畫面上引用了《大學》的經典篇章，但周圍不斷彈出的社群通知試圖將你的視線拉走。機制極其殘酷卻寫實：滑鼠的每一次游移都代表心智的動搖，導致文字模糊難辨；唯有保持滑鼠與身體的絕對靜止，拒絕所有數位誘惑，清晰的真理才會浮現。在這個被演算法與推播通知綁架的時代，我們是否還擁有閱讀一段完整文字的定力？" 
 }
     ];
 
