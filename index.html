@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reflections | Digital Art Museum</title>
+<style>
+    :root {
+        --bg: #0a0a0c;
+        --text-main: #f0f0f0;
+        --text-muted: #666666;
+        --accent: #d23838;
+        --accent-glow: rgba(210, 56, 56, 0.4);
+        --border-color: rgba(255, 255, 255, 0.1);
+    }
+    body {
+        margin: 0;
+        background-color: var(--bg);
+        color: var(--text-main);
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* 頂部策展宣言 */
+    .museum-header {
+        padding: 15vh 8vw 10vh;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .museum-header h1 {
+        font-size: clamp(3rem, 8vw, 6rem);
+        font-weight: 200;
+        letter-spacing: -2px;
+        margin: 0 0 20px 0;
+        text-transform: uppercase;
+    }
+    .museum-header p {
+        font-size: clamp(1rem, 2vw, 1.2rem);
+        color: var(--text-muted);
+        max-width: 600px;
+        line-height: 1.6;
+        font-weight: 300;
+    }
+
+    /* 展覽列表容器 */
+    .exhibition-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6vh;
+        padding: 0 6vw 5vh;
+        max-width: 1400px;
+        margin: 0 auto;
+        min-height: 60vh;
+    }
+
+    /* 單個展品區塊 */
+    .exhibit-item {
+        display: flex;
+        flex-direction: column; 
+        gap: 25px;
+        cursor: pointer;
+        padding-bottom: 8vh;
+        border-bottom: 1px solid var(--border-color);
+        opacity: 0; 
+        transform: translateY(20px);
+        animation: itemFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .exhibit-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+    @keyframes itemFadeIn { to { opacity: 1; transform: translateY(0); } }
+
+    .exhibit-info { flex: 1; display: flex; flex-direction: column; }
+    .exhibit-num { font-size: 0.9rem; color: var(--accent); letter-spacing: 2px; margin-bottom: 10px; font-weight: bold; }
+    .exhibit-title { font-size: clamp(2rem, 4vw, 3.5rem); margin: 0 0 15px 0; font-weight: 400; transition: color 0.3s; }
+    .exhibit-desc { color: var(--text-muted); font-size: 1.1rem; max-width: 400px; }
+    .exhibit-item:hover .exhibit-title { color: var(--accent); }
+
+    .preview-container {
+        flex: 1; width: 100%; aspect-ratio: 16 / 10; background: #141417; position: relative; overflow: hidden;
+        transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .preview-container::after { content: ''; position: absolute; inset: 0; border: 1px solid rgba(255,255,255,0.1); transition: border-color 0.4s; }
+    .exhibit-item:hover .preview-container { transform: scale(1.02); }
+    .exhibit-item:hover .preview-container::after { border-color: rgba(255,255,255,0.5); }
+
+    @media (min-width: 768px) {
+        .exhibition-list { gap: 15vh; padding: 0 8vw 10vh; }
+        .exhibit-item { flex-direction: row-reverse; align-items: center; gap: 6vw; padding-bottom: 0; border-bottom: none; }
+        .exhibit-item:nth-child(even) { flex-direction: row; }
+        .exhibit-item:nth-child(odd) .preview-container { transform: translateX(-2vw); }
+        .exhibit-item:nth-child(even) .preview-container { transform: translateX(2vw); }
+        .exhibit-item:nth-child(odd):hover .preview-container { transform: translateX(-2vw) scale(1.02); }
+        .exhibit-item:nth-child(even):hover .preview-container { transform: translateX(2vw) scale(1.02); }
+    }
+
+    /* ================= 導航控制台 (Navigation Deck) ================= */
+    .nav-deck-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: rgba(10, 10, 12, 0.95);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid var(--border-color);
+        padding: 20px 8vw;
+        box-sizing: border-box;
+        z-index: 900;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
+    }
+
+    .nav-deck-container.nav-hidden {
+        transform: translateY(100%);
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .nav-status {
+        font-family: monospace;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        letter-spacing: 1px;
+    }
+    .nav-current-page {
+        color: var(--accent);
+        font-weight: bold;
+    }
+
+    .nav-track {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+    }
+
+    .nav-node {
+        width: 60px;
+        height: 4px;
+        background: #333;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .nav-node:hover {
+        background: #666;
+        height: 8px;
+        box-shadow: 0 0 10px rgba(255,255,255,0.2);
+    }
+
+    .nav-node.active {
+        background: var(--accent);
+        height: 12px;
+        box-shadow: 0 0 15px var(--accent-glow);
+    }
+
+    @media (max-width: 768px) {
+        .nav-deck-container { flex-direction: column; gap: 15px; padding: 15px 5vw; }
+        .nav-track { width: 100%; justify-content: center; }
+        .nav-node { flex: 1; max-width: 50px; }
+    }
+
+    /* ================= 預覽圖 CSS ================= */
+    .preview-art1 { position: absolute; inset: 0; display: flex; flex-wrap: wrap; gap: 4px; padding: 20px; align-content: center; justify-content: center; opacity: 0.5; }
+    .preview-art1 div { width: 10px; height: 10px; background: #fff; }
+    @keyframes chaosMove1 { 0%, 100% { transform: translate(0, 0) rotate(0deg); background: #fff; } 50% { transform: translate(20px, -15px) rotate(45deg); background: var(--accent); } }
+    @keyframes chaosMove2 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-10px, 20px) scale(1.5); } }
+    .preview-art1 div:nth-child(2n) { animation: chaosMove1 4s ease-in-out infinite; }
+    .preview-art1 div:nth-child(3n) { animation: chaosMove2 5s ease-in-out infinite; }
+
+    .preview-art2 { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0.5; }
+    .art2-frame { width: 100px; height: 120px; border: 2px dashed #00d2ff; position: relative; }
+    .art2-block { width: 20px; height: 10px; background: var(--accent); position: absolute; left: 40px; animation: autoDrop 3.5s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+    @keyframes autoDrop { 0%, 10% { top: -40px; opacity: 1; } 35%, 75% { top: 90px; opacity: 1; } 90%, 100% { top: 150px; opacity: 0; } }
+
+    .preview-art3 { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 40px; align-content: center; justify-content: center; opacity: 0.6; }
+    .preview-art3 .p-dot { width: 12px; height: 12px; background: #fff; border-radius: 50%; margin: auto; transition: all 0.3s; }
+    @keyframes hydra1 { 0%, 15%, 100% { background: #fff; transform: scale(1); box-shadow: none; } 2%, 12% { background: var(--accent); transform: scale(0.7) translate(3px, -3px); box-shadow: 0 0 8px var(--accent); } }
+    @keyframes hydra2 { 0%, 15%, 35%, 100% { background: #fff; transform: scale(1); box-shadow: none; border-radius: 50%; } 17%, 32% { background: var(--accent); transform: scale(0.8) translate(-4px, 2px); box-shadow: 0 0 8px var(--accent); border-radius: 4px; } }
+    @keyframes hydra3 { 0%, 35%, 60%, 100% { background: #fff; transform: scale(1) rotate(0deg); box-shadow: none; border-radius: 50%; } 37%, 55% { background: var(--accent); transform: scale(1.3) rotate(45deg); box-shadow: 0 0 10px var(--accent); border-radius: 2px; } }
+    .preview-art3 .p-dot:nth-child(6) { animation: hydra1 5s infinite; } .preview-art3 .p-dot:nth-child(2), .preview-art3 .p-dot:nth-child(11) { animation: hydra2 5s infinite; } .preview-art3 .p-dot:nth-child(1), .preview-art3 .p-dot:nth-child(8), .preview-art3 .p-dot:nth-child(15), .preview-art3 .p-dot:nth-child(16) { animation: hydra3 5s infinite; }
+
+    .preview-art4 { position: absolute; inset: 0; background: #050505; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .art4-poem { writing-mode: vertical-rl; color: #555; font-family: serif; letter-spacing: 2px; z-index: 1; }
+    .art4-math { position: absolute; color: #00ff88; font-family: monospace; font-weight: bold; opacity: 0; animation: mathFlash 6s infinite; z-index: 2; }
+    .art4-math:nth-child(2) { top: 20%; left: 30%; animation-delay: 0.5s; } .art4-math:nth-child(3) { top: 60%; left: 70%; animation-delay: 1.2s; } .art4-math:nth-child(4) { top: 30%; left: 60%; animation-delay: 2.1s; }
+    .art4-ring { position: absolute; width: 20px; height: 20px; border: 2px solid #e8d08b; border-radius: 50%; opacity: 0; z-index: 0; animation: patienceBloom 6s infinite; }
+    @keyframes mathFlash { 0%, 60%, 100% { opacity: 0; transform: scale(0.8); } 10%, 50% { opacity: 0.8; transform: scale(1.2); } }
+    @keyframes patienceBloom { 0%, 50% { transform: scale(1); opacity: 0; } 60% { transform: scale(5); opacity: 0.5; } 80%, 100% { transform: scale(15); opacity: 0; } }
+
+    .preview-art5 { position: absolute; inset: 0; background: #030308; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .art5-core { width: 24px; height: 24px; z-index: 10; animation: art5CoreSwitch 8s infinite cubic-bezier(0.25, 1, 0.5, 1); }
+    .art5-aura { position: absolute; border: 1px solid rgba(16, 185, 129, 0.6); border-radius: 50%; animation: art5AbsorbAura 8s infinite; }
+    .art5-laser { position: absolute; width: 100px; height: 2px; background: #ef4444; opacity: 0; animation: art5ApplyLaser 8s infinite; transform-origin: left center; margin-left: 20px;}
+    .art5-laser:nth-child(3) { transform: rotate(0deg); } .art5-laser:nth-child(4) { transform: rotate(90deg); } .art5-laser:nth-child(5) { transform: rotate(180deg); } .art5-laser:nth-child(6) { transform: rotate(270deg); }
+    @keyframes art5CoreSwitch { 0%, 45% { background: #fff; border-radius: 50%; box-shadow: 0 0 20px #10b981, 0 0 40px #8b5cf6; transform: rotate(0deg) scale(1); border: none; } 50%, 95% { background: transparent; border-radius: 0%; box-shadow: inset 0 0 10px #ef4444, 0 0 15px #ef4444; transform: rotate(45deg) scale(1.2); border: 2px solid #ef4444; } 100% { background: #fff; border-radius: 50%; box-shadow: 0 0 20px #10b981; transform: rotate(90deg) scale(1); border: none; } }
+    @keyframes art5AbsorbAura { 0% { width: 24px; height: 24px; opacity: 1; } 35% { width: 200px; height: 200px; opacity: 0; } 40%, 100% { width: 24px; height: 24px; opacity: 0; } }
+    @keyframes art5ApplyLaser { 0%, 49% { opacity: 0; transform: scaleX(0); } 55%, 85% { opacity: 0.8; transform: scaleX(1); } 95%, 100% { opacity: 0; transform: scaleX(0); } }
+
+    .preview-art6 { position: absolute; inset: 0; background: #050508; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    .art6-slow { position: absolute; left: 35%; width: 12px; height: 12px; border-radius: 50%; animation: art6SlowJourney 6s infinite ease-in-out; z-index: 2; }
+    .art6-slow::after { content: ''; position: absolute; top: -10px; left: -10px; right: -10px; bottom: -10px; border-radius: 50%; border: 2px solid; animation: art6Bloom 6s infinite ease-out; }
+    .art6-fast-container { position: absolute; right: 25%; top: 30%; width: 50px; height: 100px; }
+    .art6-fast { position: absolute; width: 30px; height: 2px; background: #555; animation: art6ShatterDrop 2.5s infinite cubic-bezier(0.5, 0, 1, 1); }
+    .art6-fast:nth-child(2) { top: 15px; width: 20px; animation-delay: 0.3s; } .art6-fast:nth-child(3) { top: 30px; width: 40px; animation-delay: 0.7s; }
+    @keyframes art6SlowJourney { 0% { transform: translateY(25px); background: hsl(0, 80%, 60%); box-shadow: 0 0 20px hsl(0, 80%, 60%); color: hsl(0, 80%, 60%); } 50% { transform: translateY(-25px); background: hsl(180, 80%, 60%); box-shadow: 0 0 20px hsl(180, 80%, 60%); color: hsl(180, 80%, 60%); } 100% { transform: translateY(25px); background: hsl(360, 80%, 60%); box-shadow: 0 0 20px hsl(360, 80%, 60%); color: hsl(360, 80%, 60%); } }
+    @keyframes art6Bloom { 0%, 30% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(2.5); opacity: 0.8; } 100% { transform: scale(5); opacity: 0; } }
+    @keyframes art6ShatterDrop { 0% { transform: translate(0, 0) rotate(0deg); opacity: 1; } 15% { transform: translate(5px, 5px) rotate(15deg); opacity: 1; } 35% { transform: translate(15px, 30px) rotate(45deg); opacity: 0.5; } 100% { transform: translate(20px, 120px) rotate(90deg); opacity: 0; } }
+
+    .preview-art7 { position: absolute; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .art7-face { width: 40px; height: 50px; border: 2px solid #fff; border-radius: 40% 40% 60% 60%; position: relative; animation: art7Cycle 6s infinite step-end; }
+    .art7-link { position: absolute; background: #fff; height: 1px; width: 0; top: 50%; left: 50%; animation: art7LinkAnim 6s infinite; }
+    .art7-link:nth-child(2) { transform: rotate(45deg); animation-delay: 0.1s; } .art7-link:nth-child(3) { transform: rotate(135deg); animation-delay: 0.2s; }
+    @keyframes art7Cycle { 0% { border-color: #fff; background: transparent; box-shadow: none; transform: scale(1); } 40% { border-color: #fff; background: rgba(0, 255, 255, 0.1); box-shadow: 0 0 20px #0ff; transform: scale(1.1); border-width: 3px; } 50% { border-color: #444; background: #333; box-shadow: none; transform: scale(1); border-width: 1px; } 95% { border-color: #fff; background: transparent; } }
+    @keyframes art7LinkAnim { 0% { width: 0; opacity: 0; } 40% { width: 60px; opacity: 1; box-shadow: 0 0 5px #0ff; } 50% { width: 0; opacity: 0; } 100% { width: 0; opacity: 0; } }
+
+    .preview-art8 { position: absolute; inset: 0; background: #020202; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    .art8-scene { width: 100%; height: 100%; position: relative; animation: art8SceneRotate 10s linear infinite; }
+    .art8-p { position: absolute; width: 4px; height: 4px; background: #fff; border-radius: 50%; opacity: 0.7; }
+    .art8-p:nth-child(1) { top: 20%; left: 20%; animation: art8Move1 4s ease-in-out infinite alternate; }
+    .art8-p:nth-child(2) { top: 80%; left: 30%; animation: art8Move2 4s ease-in-out infinite alternate; }
+    .art8-p:nth-child(3) { top: 50%; left: 80%; animation: art8Move3 4s ease-in-out infinite alternate; }
+    .art8-l { position: absolute; background: var(--accent); height: 1px; transform-origin: 0 0; opacity: 0; animation: art8LineAppear 4s ease-in-out infinite alternate; }
+    .art8-f { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 0; height: 0; border-left: 30px solid transparent; border-right: 30px solid transparent; border-bottom: 50px solid rgba(210, 56, 56, 0.2); opacity: 0; animation: art8FaceAppear 4s ease-in-out infinite alternate; }
+    @keyframes art8Move1 { 0% { top: 10%; left: 10%; } 100% { top: 35%; left: 45%; } }
+    @keyframes art8Move2 { 0% { top: 90%; left: 20%; } 100% { top: 55%; left: 40%; } }
+    @keyframes art8Move3 { 0% { top: 60%; left: 90%; } 100% { top: 55%; left: 60%; } }
+    @keyframes art8LineAppear { 0%, 40% { opacity: 0; width: 0; } 100% { opacity: 0.8; width: 40px; } }
+    @keyframes art8FaceAppear { 0%, 60% { opacity: 0; transform: translate(-50%, -50%) scale(0); } 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+    @keyframes art8SceneRotate { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* ART9 Preview Style */
+    .preview-art9 { position: absolute; inset: 0; background: #030308; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    .art9-maze { position: absolute; border: 2px solid #475569; width: 100px; height: 60px; border-radius: 4px; opacity: 0.4; }
+    .art9-p1 { width: 16px; height: 16px; background: #3b82f6; border-radius: 50%; position: absolute; animation: art9Rebel 5s infinite cubic-bezier(0.25, 1, 0.5, 1); }
+    .art9-p2 { width: 16px; height: 16px; background: #ef4444; border-radius: 50%; position: absolute; animation: art9RebelTarget 5s infinite cubic-bezier(0.25, 1, 0.5, 1); }
+    .art9-burst { position: absolute; width: 0; height: 0; border-radius: 50%; border: 2px solid #0ff; opacity: 0; animation: art9BurstAnim 5s infinite; }
+    @keyframes art9Rebel {
+        0%, 20% { transform: translate(-40px, 0) scale(1); background: #3b82f6; }
+        40% { transform: translate(0, 0) scale(1.5); background: #fff; box-shadow: 0 0 20px #0ff; }
+        50%, 100% { transform: translate(0, -150px) scale(0); background: #fff; }
+    }
+    @keyframes art9RebelTarget {
+        0%, 20% { transform: translate(40px, 0) scale(1); background: #ef4444; }
+        40% { transform: translate(0, 0) scale(1.5); background: #fff; box-shadow: 0 0 20px #f0f; }
+        50%, 100% { transform: translate(0, -150px) scale(0); background: #fff; }
+    }
+    @keyframes art9BurstAnim {
+        0%, 38% { width: 0; height: 0; opacity: 0; }
+        40% { width: 20px; height: 20px; opacity: 1; border-width: 5px; }
+        60%, 100% { width: 200px; height: 200px; opacity: 0; border-width: 1px; }
+    }
+
+    /* ================= 播放器 UI ================= */
+    .viewer {
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background: #000; z-index: 1000;
+        opacity: 0; pointer-events: none;
+        transition: opacity 0.6s ease;
+        display: flex; flex-direction: column;
+    }
+    .viewer.active { opacity: 1; pointer-events: auto; }
+
+    .ui-top-bar {
+        width: 100%; padding: 20px 40px; box-sizing: border-box;
+        display: flex; justify-content: space-between; align-items: center;
+        background: var(--bg); border-bottom: 1px solid rgba(255, 255, 255, 0.08); 
+        z-index: 1010;
+    }
+    .ui-btn {
+        background: none; border: none; color: #fff; font-size: 0.9rem; letter-spacing: 2px; cursor: pointer; opacity: 0.5; transition: opacity 0.3s, transform 0.3s; text-transform: uppercase;
+    }
+    .ui-btn:hover { opacity: 1; transform: translateY(-2px); }
+    .viewer-content { flex: 1; position: relative; width: 100%; overflow: hidden; }
+    iframe { width: 100%; height: 100%; border: none; display: block; }
+
+    /* 修訂：優化賞析面板，避免文字被切斷 */
+    .analysis-panel {
+        position: absolute; 
+        bottom: 100px; /* 提高底部距離 */
+        right: 40px; 
+        width: 380px; 
+        max-height: calc(100vh - 200px); /* 限制最高高度 */
+        overflow-y: auto; /* 超出時可滾動 */
+        background: rgba(255, 255, 255, 0.95); 
+        color: #000; 
+        padding: 30px; 
+        border-radius: 4px;
+        opacity: 0; 
+        transform: translateY(20px); 
+        pointer-events: none; 
+        transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); 
+        z-index: 1005; 
+        box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    
+    /* 美化滾動條 */
+    .analysis-panel::-webkit-scrollbar { width: 6px; }
+    .analysis-panel::-webkit-scrollbar-track { background: transparent; }
+    .analysis-panel::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+
+    .analysis-panel.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .analysis-panel h3 { margin: 0 0 15px 0; font-size: 1.2rem; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
+    .analysis-panel p { margin: 0; font-size: 0.95rem; line-height: 1.7; color: #333; text-align: justify; }
+    
+    @media (max-width: 768px) {
+        .ui-top-bar { padding: 15px 20px; }
+        .analysis-panel { 
+            width: 85vw; 
+            right: 50%; 
+            bottom: 80px; /* 手機版提高位置 */
+            padding: 25px;
+            max-height: 60vh;
+            transform: translate(50%, 20px); 
+        }
+        .analysis-panel.show { transform: translate(50%, 0); }
+        .nav-deck-container { padding-bottom: 30px; } 
+    }
+</style>
+</head>
+<body>
+
+<header class="museum-header">
+    <h1>Reflections</h1>
+    <p>一個關於生活反思與學習認知的數位藝術展覽。</p>
+</header>
+
+<main class="exhibition-list" id="gallery">
+    <!-- JS 生成展品 -->
+</main>
+
+<!-- 底部留白，避免內容被導航列遮住 -->
+<div style="height: 120px;"></div>
+
+<!-- 導航控制台 (已移除羅馬數字顯示，保留 SECTOR 狀態) -->
+<nav class="nav-deck-container">
+    <div class="nav-status">
+        SECTOR STATUS: <span id="current-sector-display" class="nav-current-page">01</span> / <span id="total-sector-display">02</span>
+    </div>
+    <div class="nav-track" id="nav-track">
+        <!-- JS 將自動生成節點指示器 -->
+    </div>
+</nav>
+
+<!-- 全螢幕展區 -->
+<div class="viewer" id="viewer">
+    <div class="ui-top-bar">
+        <button class="ui-btn" id="btn-info">[ 賞析 Read ]</button>
+        <button class="ui-btn" id="btn-close">[ 離開 Exit ]</button>
+    </div>
+    <div class="viewer-content">
+        <iframe id="art-frame"></iframe>
+        <div class="analysis-panel" id="analysis-panel">
+            <h3 id="analysis-title"></h3>
+            <p id="analysis-text"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const exhibits =[
+        { id: 1, url: "art1.html", num: "NO. 01", title: "失焦矩陣", subtitle: "社交媒體與注意力的瓦解", previewHTML: `<div class="preview-art1">${'<div></div>'.repeat(30)}</div>`, analysis: "這件互動裝置具象化了數位時代的專注力危機。游標的每一次移動與點擊，都如同我們在社交媒體上的無心滑動，看似微不足道，卻不斷累積著混亂的變數。當外在的刺激超過臨界點，原本整齊的認知矩陣將徹底崩解。作品靜靜拋出一個提問：在碎片化資訊的洪流中，我們該如何守護內在的秩序。" },
+        { id: 2, url: "art2.html", num: "NO. 02", title: "重構與歸類", subtitle: "從碎片堆疊到框架思考", previewHTML: `<div class="preview-art2"><div class="art2-frame"><div class="art2-block"></div></div></div>`, analysis: "學習的過程往往面臨兩種截然不同的路徑。盲目堆積零散的細節，如同在沒有地基的狀態下築起高塔，隨時可能因微小的失衡而全面崩潰。相反地，建立宏觀的框架，則是先為知識劃定清晰的網格，讓繁雜的碎片能夠精準歸位。這組對比裝置揭示了系統化思考的價值：唯有先看見整體的輪廓，局部的細節才能找到安放的座標。" },
+        { id: 3, url: "art3.html", num: "NO. 03", title: "徒勞的完美", subtitle: "完美主義的無盡迴圈與崩潰", previewHTML: `<div class="preview-art3">${'<div class="p-dot"></div>'.repeat(16)}</div>`, analysis: "這件互動裝置精準地諷刺了學生在學習過程中對「完美」的過度執著。畫布上微小的瑕疵總誘使我們去修正，但如同現實中的「打地鼠」，過度苛求細節的代價，往往是引發更多預料之外的混亂。當修復的動作本身成為破壞整體結構的根源，作品揭示了一個殘酷的悖論：無止盡的完美主義，終究是一場徒勞無功的自我消耗。有時候，接受適度的不完美，才是維持系統運作的正解。" },
+        { id: 4, url: "art4.html", num: "NO. 04", title: "算計與詩篇", subtitle: "即時成就感與延遲的靈魂", previewHTML: `<div class="preview-art4"><div class="art4-poem">用數字填滿留白，連靈魂也無法閱讀。</div><div class="art4-math">+100</div><div class="art4-math">8923</div><div class="art4-ring"></div></div>`, analysis: "這件作品諷刺了當代學生過度追求量化成績與「即時滿足」的現象。畫面上不斷彈出的數字，象徵著算計與速成的成就感，你可以輕易透過點擊與滑動獲得分數；但代價是，代表內在涵養的文學詩篇會逐漸被亂碼吞噬。語文的學習沒有捷徑，它需要「延遲滿足」——唯有當你克制住追逐分數的衝動，在空白處耐心長按停留，拒絕干擾，文字真正的意義與美麗才會向你顯現。" },
+        { id: 5, url: "art5.html", num: "NO. 05", title: "Absorb？Apply？", subtitle: "無用之用", previewHTML: `<div class="preview-art5"><div class="art5-aura"></div><div class="art5-laser"></div><div class="art5-laser"></div><div class="art5-laser"></div><div class="art5-core"></div></div>`, analysis: "這件互動裝置以浩瀚宇宙為隱喻，演繹了我們面對深層知識時兩種截然不同的態度。作品揭示了學習的真相：無用的知識往往才是滋養靈魂的深邃養分，而過度追求即時變現的學習，終將導致精神世界的貧瘠與荒蕪。" },
+        { id: 6, url: "art6.html", num: "NO. 06", title: "軌跡與灰燼", subtitle: "急躁的代價與慢活的詩意", previewHTML: `<div class="preview-art6"><div class="art6-slow"></div><div class="art6-fast-container"><div class="art6-fast"></div></div></div>`, analysis: "這件互動裝置具象化了現代人急功近利的焦慮。當你急於求成、在畫布上快速拖曳時，留下的只有枯燥、脆弱且註定碎裂墜落的灰色線條；而當你願意慢下來，沉穩地感受當下的軌跡，畫面便會隨著時間流轉，綻放出絢麗的光彩與生命力。作品溫柔地提醒我們：唯有學會欣賞過程的緩慢，生活才會向我們展露它真實的美麗；急躁求來的結果，終究只是沒有根基、轉瞬即逝的灰燼。" },
+        { id: 7, url: "art7.html", num: "NO. 07", title: "靈魂代幣", subtitle: "效率的代價與思維的石化", previewHTML: `<div class="preview-art7"><div class="art7-link"></div><div class="art7-link"></div><div class="art7-face"></div></div>`, analysis: "這件互動裝置是對人工智慧時代的警世寓言。當我們沈迷於 AI 帶來的高效與便捷，大腦中負責深度連結的神經元卻在悄然斷裂。作品中，當你追求運算速度時，畫面會爆發出耀眼的光芒，但這光芒轉瞬即逝，隨之而來的是死寂的灰色與凝固的線條。這象徵著思維外包後的終局——我們獲得了完美的答案，卻失去了提問的靈魂，最終化為資訊洪流中一座座無法思考的石像。" },
+        { id: 8, url: "art8.html", num: "NO. 08", title: "點的狹隘", subtitle: "點、線、面與思維的維度", previewHTML: `<div class="preview-art8"><div class="art8-scene"><div class="art8-f"></div><div class="art8-p"></div><div class="art8-p"></div><div class="art8-p"></div><div class="art8-l" style="top:35%; left:45%; transform:rotate(60deg);"></div><div class="art8-l" style="top:55%; left:40%; transform:rotate(0deg);"></div><div class="art8-l" style="top:55%; left:60%; transform:rotate(-120deg);"></div></div></div>`, analysis: "這件互動裝置以極簡的幾何演變，諷刺了學生常將科目視為互不相干的孤島。在畫面左側，知識只是混沌、離散的點；當你主動介入，試圖尋找關聯，這些點才開始連成線，進而結成面，最終構建出完整的立體思維結構。唯有懂得觸類旁通，將不同學科的邏輯相互映射，我們才能突破平面的局限，看見知識全貌的立體之美。" },
+ { 
+    id: 9, 
+    url: "art9.html", 
+    num: "NO. 09", 
+    title: "循規與破局", 
+    subtitle: "慣性思維的迷宮與主動出擊的智慧", 
+    previewHTML: `<div class="preview-art9"><div class="art9-maze"></div><div class="art9-p1"></div><div class="art9-p2"></div><div class="art9-burst"></div></div>`, 
+    analysis: "這件互動裝置直擊了學習過程中常見的「思維僵化」。畫面上雖然提供了方向鍵，誘使你操控藍球乖乖走完迷宮；但如果你只懂得循規蹈矩地按部就班，最終往往會耗盡精力，淪為流水線上不知變通的灰色方塊。\n\n真正的隱藏破局之法，在於無視那些預設的按鍵——請直接用滑鼠或手指按住代表目標的「紅球」，將它拖曳到藍球身邊。當你跳出既定規則，僵化的迷宮框架便會瞬間粉碎，化為衝破維度的絢麗星辰。很多時候困住你的並非難題本身，而是盲目順從的慣性；與其在別人畫好的迷宮裡死磕，不如靈活變通，主動把目標拉向自己。" 
+}
+    ];
+
+    // 分頁設定
+    const ITEMS_PER_SECTOR = 5;
+    let currentSector = 0;
+    const totalSectors = Math.ceil(exhibits.length / ITEMS_PER_SECTOR);
+
+    // DOM 元素
+    const gallery = document.getElementById('gallery');
+    const navTrack = document.getElementById('nav-track');
+    const currentSectorDisplay = document.getElementById('current-sector-display');
+    const totalSectorDisplay = document.getElementById('total-sector-display');
+    const navDeck = document.querySelector('.nav-deck-container'); 
+    
+    // Viewer 元素
+    const viewer = document.getElementById('viewer');
+    const artFrame = document.getElementById('art-frame');
+    const analysisPanel = document.getElementById('analysis-panel');
+    const analysisTitle = document.getElementById('analysis-title');
+    const analysisText = document.getElementById('analysis-text');
+
+    // 初始化
+    function init() {
+        totalSectorDisplay.innerText = totalSectors.toString().padStart(2, '0');
+        renderNavNodes();
+        renderSector(0);
+    }
+
+    // 渲染導航節點
+    function renderNavNodes() {
+        navTrack.innerHTML = '';
+        for (let i = 0; i < totalSectors; i++) {
+            const node = document.createElement('div');
+            node.className = 'nav-node';
+            
+            node.addEventListener('click', () => {
+                renderSector(i);
+            });
+            navTrack.appendChild(node);
+        }
+    }
+
+    // 渲染展廳內容
+    function renderSector(sectorIndex) {
+        currentSector = sectorIndex;
+        currentSectorDisplay.innerText = (sectorIndex + 1).toString().padStart(2, '0');
+
+        const nodes = document.querySelectorAll('.nav-node');
+        nodes.forEach((node, idx) => {
+            if (idx === sectorIndex) node.classList.add('active');
+            else node.classList.remove('active');
+        });
+
+        gallery.innerHTML = '';
+        const start = sectorIndex * ITEMS_PER_SECTOR;
+        const end = start + ITEMS_PER_SECTOR;
+        const sectorExhibits = exhibits.slice(start, end);
+
+        sectorExhibits.forEach((ex, index) => {
+            const article = document.createElement('article');
+            article.className = 'exhibit-item';
+            article.style.animationDelay = `${index * 0.1}s`; 
+            
+            article.innerHTML = `
+                <div class="exhibit-info">
+                    <div class="exhibit-num">${ex.num}</div>
+                    <h2 class="exhibit-title">${ex.title}</h2>
+                    <div class="exhibit-desc">${ex.subtitle}</div>
+                </div>
+                <div class="preview-container">
+                    ${ex.previewHTML}
+                </div>
+            `;
+            
+            article.addEventListener('click', () => {
+                artFrame.src = ex.url;
+                analysisTitle.innerText = ex.title;
+                analysisText.innerText = ex.analysis;
+                viewer.classList.add('active');
+                analysisPanel.classList.remove('show');
+                
+                // 進入展品時，隱藏導航列
+                navDeck.classList.add('nav-hidden');
+            });
+            gallery.appendChild(article);
+        });
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    init();
+
+    // 播放器關閉邏輯
+    document.getElementById('btn-close').addEventListener('click', () => {
+        viewer.classList.remove('active');
+        analysisPanel.classList.remove('show');
+        
+        // 離開展品時，顯示導航列
+        navDeck.classList.remove('nav-hidden');
+
+        setTimeout(() => { artFrame.src = ""; }, 600);
+    });
+
+    document.getElementById('btn-info').addEventListener('click', () => {
+        analysisPanel.classList.toggle('show');
+    });
+</script>
+</body>
+</html>
