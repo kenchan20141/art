@@ -345,6 +345,37 @@
 
 
 
+/* ART12 Preview Style: 控制的幻覺 */
+    .preview-art12 { position: absolute; inset: 0; background: #0f1015; overflow: hidden; display: flex; justify-content: center; }
+    .art12-limit-line { position: absolute; top: 35%; width: 100%; height: 1px; background: rgba(255, 60, 60, 0.7); box-shadow: 0 0 5px rgba(255, 0, 0, 0.4); z-index: 2; }
+    .art12-ball-drop { position: absolute; width: 4px; height: 4px; background: #fff; border-radius: 50%; animation: art12DropAnim 2s infinite ease-in; opacity: 0; }
+    .art12-stack-bar { position: absolute; bottom: 20px; width: 12px; background: #444; animation: art12StackAnim 4s infinite steps(6); }
+    
+    /* 讓球和柱子有不同的時間差與位置 */
+    .art12-ball-drop:nth-child(2) { left: 45%; animation-delay: 0s; }
+    .art12-ball-drop:nth-child(3) { left: 55%; animation-delay: 1s; }
+    
+    .art12-stack-bar:nth-child(4) { left: 43%; animation-delay: 0.2s; }
+    .art12-stack-bar:nth-child(5) { left: 53%; animation-delay: 1.2s; }
+
+    @keyframes art12DropAnim {
+        0% { top: 0; opacity: 1; transform: translateX(0); }
+        20% { transform: translateX(5px); }
+        40% { transform: translateX(-5px); }
+        60% { top: 65%; opacity: 1; }
+        61% { opacity: 0; }
+        100% { opacity: 0; }
+    }
+    @keyframes art12StackAnim {
+        0% { height: 0; background: #444; }
+        80% { height: 60%; background: #666; } 
+        90%, 100% { height: 66%; background: #d23838; box-shadow: 0 0 15px #d23838; } /* 觸線變紅 */
+    }
+
+
+
+
+
 
 
 
@@ -421,7 +452,7 @@
 
 <header class="museum-header">
     <h1>Reflections</h1>
-    <p>一個關於生活態度與學習認知的數位藝術展覽。</p>
+    <p>一個關於生活反思與學習認知的數位藝術展覽。</p>
 </header>
 
 <main class="exhibition-list" id="gallery">
@@ -492,6 +523,23 @@
     subtitle: "在躁動世界重拾閱讀本能", 
     previewHTML: `<div class="preview-art11"><div class="art11-text-beam"></div><div class="art11-popup"></div><div class="art11-popup"></div></div>`, 
     analysis: "這件作品是一場關於專注力的數位修行。畫面上引用了《大學》的經典篇章，但周圍不斷彈出的社群通知試圖將你的視線拉走。機制極其殘酷卻寫實：滑鼠的每一次游移都代表心智的動搖，導致文字模糊難辨；唯有保持滑鼠與身體的絕對靜止，拒絕所有數位誘惑，清晰的真理才會浮現。在這個被演算法與推播通知綁架的時代，我們是否還擁有閱讀一段完整文字的定力？" 
+},
+{ 
+    id: 12, 
+    url: "art12.html", 
+    num: "NO. 12", 
+    title: "控制的幻覺", 
+    subtitle: "努力的落點與命運的紅線", 
+    previewHTML: `
+        <div class="preview-art12">
+            <div class="art12-limit-line"></div>
+            <div class="art12-ball-drop"></div>
+            <div class="art12-ball-drop"></div>
+            <div class="art12-stack-bar"></div>
+            <div class="art12-stack-bar"></div>
+        </div>
+    `, 
+    analysis: "這件作品以釘板的機率遊戲，辯證了「努力」的真實價值。雖然落下的路徑充滿隨機變數，但你投入的蓄力越深，光球便越有機會落入高分的區間——這證明努力並非徒勞，它能提高成功的機率。作品試圖傳達的，還有一種在積極進取後的釋懷：我們能完全掌控的只有手中的力度與發射的瞬間，至於結果的些許偏差，則是不可控的，我們只能「盡人事，聽天命」——僅執著於可控的耕耘，並在不可控的落點面前，學會優雅地接受。" 
 }
     ];
 
