@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Illusion of Control</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #0f1015;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let W, H;
+        const grades = ["LV 1", "LV 2", "LV 3", "LV 4", "LV 5", "LV 5*", "LV 5**"];
+        const binCounts = [0, 0, 0, 0, 0, 0, 0];
+        const balls = [];
+        const floatingTexts = [];
+        
+        // 互動狀態
+        let isCharging = false;
+        let effortLevel = 0;
+        
+        // 遊戲結束狀態
+        let isGameOver = false;
+        let finalResult = ""; // 最終顯示的等第
+        let gameOverAlpha = 0; // 用於淡入結算畫面
+
+        // 畫布自適應
+        function resize() {
+            W = window.innerWidth;
+            H = window.innerHeight;
+            canvas.width = W;
+            canvas.height = H;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // 綁定事件
+        window.addEventListener('pointerdown', (e) => {
+            if (isGameOver) {
+                // 遊戲結束時，點擊任何地方重啟
+                if (gameOverAlpha > 0.8) resetGame();
+            } else {
+                isCharging = true;
+            }
+        });
+        
+        window.addEventListener('pointerup', releaseBall);
+        window.addEventListener('pointercancel', releaseBall);
+
+        function resetGame() {
+            binCounts.fill(0);
+            balls.length = 0;
+            floatingTexts.length = 0;
+            isGameOver = false;
+            effortLevel = 0;
+            finalResult = "";
+            gameOverAlpha = 0;
+        }
+
+        function releaseBall() {
+            if (isCharging && !isGameOver) {
+                balls.push(new Ball(effortLevel));
+                isCharging = false;
+                effortLevel = 0;
+            } else {
+                isCharging = false;
+                effortLevel = 0;
+            }
+        }
+
+        function getEffortColor(value) {
+            // 顏色從冷淡的藍灰漸變到熾熱的金紅
+            const h = 220 - (value * 220); 
+            const s = 40 + value * 60;
+            const l = 50 + value * 10;
+            return `hsl(${h}, ${s}%, ${l}%)`;
+        }
+
+        const ROWS = 12;
+        const COLS = 7;
+        
+        function getBoardMetrics() {
+            const binWidth = Math.min(W * 0.9 / COLS, 55); 
+            const startX = (W - binWidth * COLS) / 2 + binWidth / 2;
+            const startY = H * 0.20; // 釘板起始位置
+            const rowHeight = (H * 0.4) / ROWS; 
+            
+            // 目標線位置 (設定在釘板區域上方，留出壓迫感)
+            const targetLineY = startY - rowHeight * 1.5; 
+
+            // 底部基準線
+            const baseline = startY + ROWS * rowHeight + 40;
+
+            return { binWidth, startX, startY, rowHeight, targetLineY, baseline };
+        }
+
+        // 浮動文字 (過程中的反饋)
+        class FloatingText {
+            constructor(x, y, text, color) {
+                this.x = x;
+                this.y = y;
+                this.text = text;
+                this.color = color;
+                this.life = 1.0;
+                this.dy = -0.5 - Math.random() * 0.5;
+            }
+            update() {
+                this.y += this.dy;
+                this.life -= 0.02;
+            }
+            draw(ctx) {
+                if (this.life <= 0) return;
+                ctx.save();
+                ctx.globalAlpha = this.life * 0.7; // 稍微淡一點，不搶戲
+                ctx.fillStyle = this.color;
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.text, this.x, this.y);
+                ctx.restore();
+            }
+        }
+
+        class Ball {
+            constructor(effort) {
+                this.effort = effort;
+                this.color = getEffortColor(effort);
+                this.col = effort * (COLS - 1); 
+                this.row = -1; 
+                
+                const { startX, startY, binWidth, rowHeight } = getBoardMetrics();
+                
+                this.x = startX + this.col * binWidth;
+                this.y = startY - rowHeight * 4; // 從更高處落下
+                
+                this.targetX = this.x;
+                this.targetY = this.y;
+                this.progress = 1;
+                this.isLanded = false;
+                this.history = []; 
+            }
+
+            calculateNextStep() {
+                const { startX, startY, binWidth, rowHeight, targetLineY, baseline } = getBoardMetrics();
+                this.row++;
+                
+                if (this.row >= ROWS) {
+                    this.isLanded = true;
+                    let finalBin = Math.round(this.col);
+                    if(finalBin < 0) finalBin = 0;
+                    if(finalBin > 6) finalBin = 6;
+                    
+                    binCounts[finalBin]++;
+                    
+                    // 特效
+                    const cx = startX + finalBin * binWidth;
+                    floatingTexts.push(new FloatingText(cx, baseline - 20, grades[finalBin], this.color));
+                    
+                    // --- 檢查是否觸線 (Game Over Check) ---
+                    const blockHeight = 8;
+                    const gap = 3;
+                    const currentStackHeight = binCounts[finalBin] * (blockHeight + gap);
+                    const stackTopY = baseline - currentStackHeight;
+
+                    // 如果方塊頂部觸及或超過目標線
+                    if (stackTopY <= targetLineY) { 
+                        isGameOver = true;
+                        finalResult = grades[finalBin]; // 記錄觸發結束的等級
+                    }
+                    // ------------------------------------
+                    return;
+                }
+
+                // 隨機擾動
+                let bounce = (Math.random() < 0.5) ? -0.5 : 0.5;
+                this.col += bounce;
+
+                if (this.col < 0) this.col = 0.5;
+                if (this.col > COLS - 1) this.col = COLS - 1.5;
+
+                this.targetX = startX + this.col * binWidth;
+                this.targetY = startY + this.row * rowHeight;
+                this.progress = 0;
+            }
+
+            update() {
+                if (this.isLanded) return;
+                
+                if (this.progress >= 1) {
+                    this.calculateNextStep();
+                } else {
+                    this.progress += 0.08;
+                    if(this.progress > 1) this.progress = 1;
+
+                    this.x += (this.targetX - this.x) * 0.2;
+                    this.y += (this.targetY - this.y) * 0.2;
+
+                    this.history.push({x: this.x, y: this.y});
+                    if (this.history.length > 10) this.history.shift();
+                }
+            }
+
+            draw() {
+                if (this.isLanded) return;
+                
+                // 拖尾
+                if (this.history.length > 1) {
+                    ctx.beginPath();
+                    ctx.moveTo(this.history[0].x, this.history[0].y);
+                    for (let i = 1; i < this.history.length; i++) {
+                        ctx.lineTo(this.history[i].x, this.history[i].y);
+                    }
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = 2;
+                    ctx.lineCap = 'round';
+                    ctx.globalAlpha = 0.4;
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+                }
+
+                // 球體
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+        }
+
+        function drawEnvironment() {
+            const { startX, startY, binWidth, rowHeight, targetLineY, baseline } = getBoardMetrics();
+
+            // 1. 繪製那條線 (目標線)
+            // 極簡設計：一條單純的、帶有壓迫感的紅線
+            ctx.beginPath();
+            ctx.moveTo(0, targetLineY);
+            ctx.lineTo(W, targetLineY);
+            ctx.strokeStyle = 'rgba(255, 60, 60, 0.6)'; // 半透明紅
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // 2. 釘板點 (背景)
+            ctx.fillStyle = '#1e1f26';
+            for (let r = 0; r <= ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    let px = startX + c * binWidth;
+                    let py = startY + r * rowHeight;
+                    if (r % 2 !== 0) {
+                        px += binWidth / 2;
+                        if (c === COLS - 1) continue; 
+                    }
+                    ctx.beginPath();
+                    ctx.arc(px, py, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // 3. 底部槽與結果方塊
+            const blockHeight = 8;
+            const gap = 3;
+            
+            ctx.textAlign = 'center';
+            ctx.font = '12px Arial'; // 標籤字體調小，更精緻
+
+            for (let i = 0; i < COLS; i++) {
+                const cx = startX + i * binWidth;
+                
+                // 堆疊方塊
+                const stackHeight = binCounts[i] * (blockHeight + gap);
+                
+                for (let b = 0; b < binCounts[i]; b++) {
+                    const by = baseline - (b + 1) * (blockHeight + gap);
+                    
+                    // 顏色邏輯：越接近線越紅
+                    const distToLine = by - targetLineY;
+                    let blockColor;
+                    
+                    if (distToLine < 50) {
+                        blockColor = '#ff4444'; // 危險
+                    } else if (distToLine < 150) {
+                        blockColor = '#aa5555'; // 警告
+                    } else {
+                        blockColor = '#444'; // 安全（沈默的灰）
+                    }
+
+                    ctx.fillStyle = blockColor;
+                    ctx.fillRect(cx - binWidth * 0.35, by, binWidth * 0.7, blockHeight);
+                }
+
+                // 底部等級標籤
+                ctx.fillStyle = '#666';
+                ctx.fillText(grades[i], cx, baseline + 25);
+            }
+
+            // 4. 充能指示器 (僅在遊戲進行中顯示，且非常極簡)
+            if (!isGameOver) {
+                const btnY = H * 0.9; 
+                // 只畫一個圓圈，沒有複雜裝飾
+                ctx.beginPath();
+                ctx.arc(W / 2, btnY, 25, 0, Math.PI * 2);
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                if (isCharging || effortLevel > 0) {
+                    ctx.beginPath();
+                    ctx.arc(W / 2, btnY, 23 * effortLevel, 0, Math.PI * 2);
+                    ctx.fillStyle = getEffortColor(effortLevel);
+                    ctx.fill();
+                }
+            }
+        }
+
+        // 繪製極簡的結算畫面
+        function drawResult() {
+            if (!isGameOver) return;
+
+            // 淡入效果
+            if (gameOverAlpha < 0.95) gameOverAlpha += 0.02;
+
+            // 1. 全屏遮罩 (黑色)
+            ctx.fillStyle = `rgba(10, 10, 12, ${gameOverAlpha})`;
+            ctx.fillRect(0, 0, W, H);
+
+            // 2. 只顯示最終等第
+            ctx.save();
+            ctx.translate(W / 2, H / 2);
+            ctx.globalAlpha = gameOverAlpha;
+            
+            // 字體大小隨螢幕寬度變化，確保衝擊力
+            const fontSize = Math.min(W, H) * 0.15; 
+            ctx.font = `bold ${fontSize}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // 文字顏色為純白，帶一點發光
+            ctx.fillStyle = '#fff';
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#fff';
+            ctx.fillText(finalResult, 0, -20);
+            
+            // 取消陰影
+            ctx.shadowBlur = 0;
+
+            // 3. 極微小的提示 (藝術裝置通常不顯示 "Tap to Restart"，但為了可用性保留極淡的提示)
+            if (gameOverAlpha > 0.8) {
+                ctx.font = '14px sans-serif';
+                ctx.fillStyle = '#444';
+                ctx.fillText("...", 0, 80); // 這裡用省略號或空白代替文字提示，保持神秘感
+            }
+            
+            ctx.restore();
+        }
+
+        function loop() {
+            ctx.clearRect(0, 0, W, H);
+
+            if (isCharging && !isGameOver) {
+                effortLevel += 0.015;
+                if (effortLevel > 1) effortLevel = 1;
+            }
+
+            drawEnvironment();
+
+            // 球的物理運算
+            for (let i = balls.length - 1; i >= 0; i--) {
+                balls[i].update();
+                balls[i].draw();
+                if (balls[i].isLanded) {
+                    balls.splice(i, 1);
+                }
+            }
+
+            // 浮動文字
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                floatingTexts[i].update();
+                floatingTexts[i].draw(ctx);
+                if (floatingTexts[i].life <= 0) {
+                    floatingTexts.splice(i, 1);
+                }
+            }
+
+            // 如果遊戲結束，繪製結算層
+            if (isGameOver) {
+                drawResult();
+            }
+
+            requestAnimationFrame(loop);
+        }
+
+        requestAnimationFrame(loop);
+    </script>
+</body>
+</html>
