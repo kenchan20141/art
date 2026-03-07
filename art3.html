@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Art 3 - 徒勞的完美</title>
+<style>
+    body {
+        margin: 0;
+        height: 100vh;
+        background-color: #000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        /* 關鍵：徹底禁用瀏覽器預設的雙指縮放、下拉重整與滑動捲動 */
+        touch-action: none; 
+    }
+
+    #matrix {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        /* 響應式間距：隨螢幕縮放 */
+        gap: clamp(3px, 1.5vmin, 15px);
+        width: 90vmin; 
+        max-width: 600px;
+        /* 防止滑鼠拖曳反白，影響體驗 */
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    .dot {
+        width: 100%;
+        aspect-ratio: 1 / 1; 
+        background-color: #ffffff;
+        border-radius: 50%;
+        transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        cursor: crosshair;
+        position: relative;
+    }
+
+    /* 擴大隱形觸控熱區，就算手指粗、點擊有偏差也能輕易觸發 */
+    .dot::after {
+        content: '';
+        position: absolute;
+        inset: -8px; 
+        border-radius: 50%;
+    }
+
+    /* 瑕疵狀態 */
+    .flaw {
+        background-color: #d23838;
+        transform: scale(0.6) translate(15%, -15%);
+        box-shadow: 0 0 10px #d23838;
+        animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+        0% { opacity: 0.6; }
+        50% { opacity: 1; transform: scale(0.8) translate(25%, -25%); }
+        100% { opacity: 0.6; }
+    }
+
+    /* 混亂度變高時的形變 */
+    .chaos-1 { border-radius: 2px; }
+    .chaos-2 { transform: rotate(45deg) scale(1.2); }
+</style>
+</head>
+<body>
+
+<div id="matrix"></div>
+
+<script>
+    const matrix = document.getElementById('matrix');
+    const totalDots = 144; // 12x12
+    let dots =[];
+    let chaosLevel = 0;
+
+    // 建立完美矩陣
+    for (let i = 0; i < totalDots; i++) {
+        let dot = document.createElement('div');
+        dot.classList.add('dot');
+        matrix.appendChild(dot);
+        dots.push(dot);
+    }
+
+    // 隨機產生瑕疵
+    function spawnFlaw(count) {
+        let availableDots = dots.filter(d => !d.classList.contains('flaw'));
+        for(let i=0; i<count; i++) {
+            if(availableDots.length === 0) break;
+            let randIndex = Math.floor(Math.random() * availableDots.length);
+            let target = availableDots.splice(randIndex, 1)[0];
+            target.classList.add('flaw');
+            
+            if(chaosLevel > 10) target.classList.add('chaos-1');
+            if(chaosLevel > 30) target.classList.add('chaos-2');
+        }
+    }
+
+    // 初始狀態
+    spawnFlaw(1);
+
+    /* =========================================
+       核心優化：支援點擊 + 手指連續滑動偵測
+       ========================================= */
+    let isInteracting = false; // 紀錄使用者是否正在按住/觸控螢幕
+
+    // 1. 當按下或觸控開始時
+    document.addEventListener('pointerdown', (e) => {
+        isInteracting = true;
+        checkAndFix(e.clientX, e.clientY);
+    });
+
+    // 2. 當游標或手指在螢幕上滑動時
+    document.addEventListener('pointermove', (e) => {
+        if (!isInteracting) return; // 只有在按住的狀態下滑動才有效
+        checkAndFix(e.clientX, e.clientY);
+    });
+
+    // 3. 鬆開手指或離開畫面時，重置狀態
+    document.addEventListener('pointerup', () => isInteracting = false);
+    document.addEventListener('pointercancel', () => isInteracting = false);
+
+    // 偵測座標下方的元素並執行修復
+    function checkAndFix(x, y) {
+        // 透過 X,Y 座標，精準找出當前手指/游標正下方的元素
+        const targetElement = document.elementFromPoint(x, y);
+
+        // 如果手指下的元素剛好是帶有瑕疵的圓點
+        if (targetElement && targetElement.classList.contains('flaw')) {
+            // 修復它
+            targetElement.classList.remove('flaw');
+            chaosLevel++;
+
+            // 動態增加懲罰倍數：越到後期，一次壞越多個
+            let spawnCount = 2; 
+            if (chaosLevel > 15) spawnCount = 3;
+            if (chaosLevel > 40) spawnCount = 5;
+
+            // 稍微延遲一下產生新的瑕疵，營造打地鼠的無力感
+            setTimeout(() => {
+                spawnFlaw(spawnCount);
+            }, 100);
+        }
+    }
+</script>
+
+</body>
+</html>

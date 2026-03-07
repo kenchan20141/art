@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Art 4 - 算計與詩篇</title>
+<style>
+    /* 禁用反白與預設觸控行為，確保互動順暢 */
+    * {
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+    }
+
+    body {
+        margin: 0;
+        height: 100vh;
+        background-color: #050505;
+        overflow: hidden;
+        font-family: "Helvetica Neue", Arial, sans-serif;
+        touch-action: none;
+        color: #fff;
+    }
+
+    /* 頂部即時分數：代表虛榮與即時回饋 */
+    #score-board {
+        position: absolute;
+        top: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 1.5rem;
+        font-family: monospace;
+        color: #00ff88;
+        text-shadow: 0 0 10px rgba(0,255,136,0.5);
+        z-index: 100;
+        pointer-events: none;
+        transition: opacity 2s;
+        white-space: nowrap; 
+    }
+
+    /* 中央的文學詩篇：代表延遲滿足與內在靈魂 */
+    #poem-container {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 10vw;
+        pointer-events: none;
+        z-index: 10;
+    }
+    
+    #poem {
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        font-family: "Songti SC", "MingLiU", serif;
+        font-size: clamp(1.2rem, 4vw, 2rem);
+        line-height: 2.5;
+        color: #888;
+        letter-spacing: 5px;
+        transition: all 1s ease;
+    }
+
+    .char { transition: color 0.3s; }
+    
+    /* 遭算計侵蝕的文字 - 變回數字，但保留數學字體與崩壞感 */
+    .corrupted {
+        font-family: "Cambria Math", "Georgia", monospace;
+        font-style: italic;
+        color: #d23838;
+        font-weight: bold;
+        text-shadow: 0 0 5px #d23838;
+        transform: rotate(-10deg);
+        display: inline-block;
+    }
+
+    /* 覺醒後的文字狀態 */
+    #poem.enlightened {
+        color: #e8d08b;
+        text-shadow: 0 0 20px rgba(232, 208, 139, 0.6);
+        transform: scale(1.05);
+    }
+
+    /* 彈出的數字與算式 */
+    #math-layer { position: absolute; inset: 0; z-index: 20; }
+    
+    .math-node {
+        position: absolute;
+        padding: 10px 15px;
+        font-family: "Cambria Math", "Times New Roman", serif;
+        font-style: italic;
+        font-size: 1.3rem;
+        font-weight: bold;
+        color: #fff;
+        background: rgba(0, 255, 136, 0.05);
+        border: 1px solid rgba(0, 255, 136, 0.5);
+        border-radius: 4px;
+        cursor: crosshair;
+        transform: translate(-50%, -50%);
+        white-space: nowrap;
+        box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+        animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes popIn {
+        0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+        100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+
+    /* 點擊特效 */
+    .float-text {
+        position: absolute;
+        color: #00ff88;
+        font-family: monospace;
+        font-weight: bold;
+        font-size: 1.5rem;
+        pointer-events: none;
+        animation: floatUp 0.8s ease-out forwards;
+        z-index: 50;
+    }
+    @keyframes floatUp {
+        0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        100% { transform: translate(-50%, -150%) scale(1.5); opacity: 0; }
+    }
+
+    /* 延遲滿足的等待光環：固定於畫面中央包圍文字 */
+    #patience-ring {
+        position: absolute;
+        top: 50%; left: 50%;
+        width: 150px; height: 150px;
+        border: 3px dashed #e8d08b;
+        border-radius: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
+        pointer-events: none;
+        z-index: 5;
+    }
+</style>
+</head>
+<body oncontextmenu="return false;">
+
+<div id="score-board">ACHIEVEMENT: <span id="score">0</span></div>
+
+<div id="poem-container">
+    <div id="poem"></div>
+</div>
+
+<div id="math-layer"></div>
+<!-- 等待光環 -->
+<div id="patience-ring"></div>
+
+<script>
+    const originalText = "文學的意義不在於即刻的兌現，\n而是在漫長的歲月裡逐漸回甘。\n但我們總急於計算眼前的得失，\n用無盡的數字填滿心靈的留白，\n最終，連自己的靈魂也無法閱讀。";
+    
+    const poemDiv = document.getElementById('poem');
+    const mathLayer = document.getElementById('math-layer');
+    const scoreSpan = document.getElementById('score');
+    const patienceRing = document.getElementById('patience-ring');
+    const scoreBoard = document.getElementById('score-board');
+
+    let chars =[];
+    let score = 0;
+    let isEnlightened = false;
+
+    const mathExpressions =[
+        "a² + b² = c²", "y = ax + b", "3x - 7 = 14", "(a + b)² = a² + 2ab + b²",
+        "π ≈ 3.14159", "√144 = 12", "2⁵ = 32", "|-10| = 10", "∠A + ∠B + ∠C = 180°",
+        "1/3 = 0.333...", "△ABC ≅ △DEF", "x > 0", "-8 × -7 = 56",
+        "+100", "9,999", "100%", "x = 99", "0.001", "8,923", "42"
+    ];
+
+    // 1. 初始化詩篇
+    function initPoem() {
+        originalText.split('').forEach((char) => {
+            if (char === '\n') {
+                poemDiv.appendChild(document.createElement('br'));
+            } else {
+                let span = document.createElement('span');
+                span.innerText = char;
+                span.className = 'char';
+                poemDiv.appendChild(span);
+                chars.push({ span, original: char, isCorrupted: false });
+            }
+        });
+    }
+    initPoem();
+
+    // 2. 自動生成誘惑的數字
+    let spawnInterval = setInterval(() => {
+        if (isEnlightened) return;
+        createMathNode();
+    }, 600); 
+
+    function createMathNode() {
+        let node = document.createElement('div');
+        node.className = 'math-node';
+        node.innerText = mathExpressions[Math.floor(Math.random() * mathExpressions.length)];
+        
+        let x = 10 + Math.random() * 80; 
+        let y = 10 + Math.random() * 80;
+        node.style.left = x + 'vw';
+        node.style.top = y + 'vh';
+        
+        mathLayer.appendChild(node);
+
+        setTimeout(() => {
+            if(node.parentNode) node.remove();
+        }, 3000);
+    }
+
+    // 3. 破壞語文的懲罰機制
+    function corruptPoem() {
+        let cleanChars = chars.filter(c => !c.isCorrupted);
+        if (cleanChars.length === 0) return;
+        
+        for(let i=0; i<2; i++) {
+            if (cleanChars.length === 0) break;
+            let target = cleanChars[Math.floor(Math.random() * cleanChars.length)];
+            target.isCorrupted = true;
+            target.span.innerText = Math.floor(Math.random() * 10); 
+            target.span.classList.add('corrupted');
+            cleanChars = chars.filter(c => !c.isCorrupted);
+        }
+    }
+
+    // 4. 互動邏輯 (只要點擊或滑動，就會中斷靜待計時)
+    let patienceProgress = 0;
+    const REQUIRED_PATIENCE = 5000; // 靜待 5 秒鐘
+    let lastProcessedNode = null;
+    let isPressing = false;
+
+    function resetPatience() {
+        patienceProgress = 0; // 一旦有操作，忍耐計時器歸零
+        patienceRing.style.opacity = 0;
+    }
+
+    function checkInteraction(x, y) {
+        resetPatience(); // 互動時重置靜待計時
+
+        let target = document.elementFromPoint(x, y);
+        if (target && target.classList.contains('math-node') && target !== lastProcessedNode) {
+            // 命中數字：獲得即時回饋
+            lastProcessedNode = target;
+            target.remove();
+            
+            let gain = Math.floor(Math.random() * 50) + 50;
+            score += gain;
+            scoreSpan.innerText = score;
+
+            let floatText = document.createElement('div');
+            floatText.className = 'float-text';
+            floatText.innerText = "+" + gain;
+            floatText.style.left = x + 'px';
+            floatText.style.top = y + 'px';
+            document.body.appendChild(floatText);
+            setTimeout(() => floatText.remove(), 800);
+
+            corruptPoem();
+        }
+    }
+
+    // 電腦版滑鼠事件 (點擊或拖曳滑動都會重置)
+    document.addEventListener('mousedown', (e) => {
+        isPressing = true;
+        checkInteraction(e.clientX, e.clientY);
+    });
+    document.addEventListener('mousemove', (e) => {
+        if (isPressing) checkInteraction(e.clientX, e.clientY);
+    });
+    window.addEventListener('mouseup', () => { isPressing = false; });
+
+    // 手機版觸控事件 (觸控或滑動都會重置)
+    document.addEventListener('touchstart', (e) => {
+        isPressing = true;
+        checkInteraction(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: false });
+    document.addEventListener('touchmove', (e) => {
+        if (isPressing) checkInteraction(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: false });
+    window.addEventListener('touchend', () => { isPressing = false; });
+    window.addEventListener('touchcancel', () => { isPressing = false; });
+
+
+    // 5. 遊戲主迴圈 (處理靜止不動時的等待光環)
+    let lastTime = performance.now();
+    function loop(time) {
+        let deltaTime = time - lastTime;
+        lastTime = time;
+
+        if (deltaTime > 100) deltaTime = 16; // 防止切換分頁導致時間暴增
+
+        // 核心邏輯：只要尚未覺醒，且不點擊畫面，耐心值就會自動隨時間增加
+        if (!isEnlightened) {
+            patienceProgress += deltaTime;
+            
+            // 讓黃圈從中央慢慢浮現放大
+            let progressRatio = patienceProgress / REQUIRED_PATIENCE;
+
+            // 靜待超過 0.5 秒後，黃圈開始出現並變大
+            if (patienceProgress > 500) {
+                patienceRing.style.opacity = Math.min(0.8, progressRatio * 1.5);
+                // 大小從 0 倍放大到 6 倍，包圍文字
+                patienceRing.style.transform = `translate(-50%, -50%) scale(${progressRatio * 6})`;
+                patienceRing.style.boxShadow = `0 0 ${progressRatio * 40}px rgba(232, 208, 139, 0.6)`;
+            }
+
+            // 達成 5 秒完全不點擊 (延遲滿足)！
+            if (patienceProgress >= REQUIRED_PATIENCE) {
+                achieveEnlightenment();
+            }
+        }
+
+        requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    // 6. 昇華狀態 (放下算計，擁抱詩篇)
+    function achieveEnlightenment() {
+        isEnlightened = true;
+        clearInterval(spawnInterval);
+        patienceRing.remove(); // 移除光環
+        mathLayer.innerHTML = ''; // 清除所有數字
+        
+        // 分數化為虛無
+        scoreBoard.style.opacity = 0;
+
+        // 修復所有文字
+        chars.forEach(c => {
+            setTimeout(() => {
+                c.span.innerText = c.original;
+                c.span.classList.remove('corrupted');
+            }, Math.random() * 500);
+        });
+
+        // 加上發光特效
+        setTimeout(() => {
+            poemDiv.classList.add('enlightened');
+        }, 500);
+    }
+</script>
+</body>
+</html>
