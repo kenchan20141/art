@@ -31,7 +31,7 @@
         /* 手機/直向佈局：置於底部中心，並拉開與底部的距離，避開手機底層 Home 條 */
         @media (orientation: portrait) {
             #dpad {
-                bottom: calc(80px + env(safe-area-inset-bottom, 0px)); 
+               bottom: calc(40px + env(safe-area-inset-bottom, 0px));
                 left: 50%; transform: translateX(-50%);
             }
         }
@@ -112,7 +112,7 @@
             
             // ★ 新增：明確劃分各方向的「保留邊距 (px)」，確保迷宮絕對不會貼邊
             let reservedTop = 80;    // 頂部強制保留 80px 空間，避開手機瀏海與邊緣
-            let reservedBottom = isPortrait ? 280 : 60; // 直向避開底部按鍵，橫向保留基本底距
+           let reservedBottom = isPortrait ? 360 : 60; // 直向避開底部按鍵，橫向保留基本底距
             let reservedRight = isPortrait ? 0 : 260;   // 橫向避開右側按鍵
             let reservedLeft = 0;
 
