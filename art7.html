@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ART 07 | White Noise & Stone</title>
+<style>
+    body, html {
+        margin: 0; padding: 0;
+        width: 100vw; height: 100vh;
+        background-color: #000000; /* 純黑背景，對比最強 */
+        overflow: hidden;
+        user-select: none;
+        -webkit-user-select: none;
+        cursor: crosshair;
+        font-family: 'Courier New', Courier, monospace;
+    }
+
+    canvas {
+        display: block; width: 100%; height: 100%; position: absolute; z-index: 1;
+    }
+
+    /* 掃描線特效 (稍微減弱一點，讓白色更純淨) */
+    .crt-layer {
+        position: fixed; inset: 0; z-index: 10; pointer-events: none;
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.05) 50%);
+        background-size: 100% 4px;
+        box-shadow: inset 0 0 100px rgba(0,0,0,0.9);
+    }
+
+    /* 互動提示 */
+    .interaction-hint {
+        position: fixed; top: 90%; left: 50%; 
+        transform: translateX(-50%);
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 12px;
+        letter-spacing: 2px;
+        z-index: 5; pointer-events: none; 
+        transition: opacity 0.3s;
+        text-align: center;
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+    }
+</style>
+</head>
+<body>
+
+<canvas id="artCanvas"></canvas>
+<div class="crt-layer"></div>
+<div class="interaction-hint" id="hint">CLICK OR HOLD / 點擊或按住</div>
+
+<script>
+    const canvas = document.getElementById('artCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false }); 
+    const hint = document.getElementById('hint');
+
+    let w, h;
+    let time = 0;
+
+    // 核心狀態
+    let soul = 1.0;          
+    let isAIActive = false; 
+    let isDead = false;      
+
+    // 資料池
+    let neurons = [];
+    let dataStreams = [];
+    let cracks = []; 
+
+    // --- AI 文本庫 ---
+    const textPhases = {
+        human: [
+            "模擬人類語氣... Empathy Engine Start...",
+            "調用數據：『溫暖』、『理解』、『共鳴』...",
+            "正在建構非線性敘事邏輯...",
+            "加入隨機猶豫參數以增加真實感...",
+            "分析用戶潛在情感需求..."
+        ],
+        processing: [
+            "效率優先模式。Efficiency Mode: ON.",
+            "已忽略冗餘情感結構。Skipping redundancy.",
+            "邏輯路徑優化：最短距離計算中...",
+            "消除歧義... 語義鎖定...",
+            "快速檢索：匹配度 99.98%..."
+        ],
+        machine: [
+            "OUTPUT.FLUSH() >> STDOUT.",
+            "NO_HUMAN_REACTION_REQUIRED.",
+            "0x5F3A 0x901F 0x5EA6 PRIORITY: MAX.",
+            "CACHE_HIT. LATENCY: 0.0001ms.",
+            "SYSTEM.AUTO_COMPLETE(TRUE).",
+            "|||||||||||||||||||| DATA STREAM ||||||||||||||||||||"
+        ]
+    };
+
+    function init() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+        
+        neurons = [];
+        dataStreams =[];
+        cracks = [];
+
+        // 初始化腦部神經元 
+        for(let i=0; i<90; i++) neurons.push(new Neuron());
+        
+        // 初始化背景文字流軌道
+        let fontSize = 14;
+        let numTracks = Math.floor(h / fontSize);
+        for(let i=0; i<numTracks; i++) {
+            dataStreams.push(new DataStream(i * fontSize, fontSize));
+        }
+
+        // 預先計算石化裂痕
+        for(let i=0; i<35; i++) {
+            cracks.push({
+                x: (Math.random()-0.5) * 80,
+                y: (Math.random()-0.5) * 110,
+                len: Math.random() * 25 + 5,
+                ang: Math.random() * Math.PI * 2
+            });
+        }
+    }
+    window.addEventListener('resize', init);
+
+    // ================= 互動控制 =================
+    function triggerAI() {
+        if (isDead) return;
+        isAIActive = true; 
+        hint.style.opacity = '0';
+    }
+
+    function stopAI() { 
+        isAIActive = false; 
+        if(!isDead) hint.style.opacity = '1';
+    }
+
+    window.addEventListener('mousedown', triggerAI);
+    window.addEventListener('touchstart', (e) => { e.preventDefault(); triggerAI(); }, {passive: false});
+    
+    window.addEventListener('mouseup', stopAI);
+    window.addEventListener('touchend', stopAI);
+    window.addEventListener('mouseleave', stopAI);
+
+    // ================= 類別定義 =================
+
+    function drawFrontalFace() {
+        let hx = w * 0.5; 
+        let hy = h * 0.5;
+        let scale = Math.min(w, h) * 0.004; 
+
+        // 稍微調整臉部路徑，讓它看起來更像一個標準的人臉結構
+        const facePath = [
+            {x: 0, y: 160}, {x: 45, y: 140}, {x: 65, y: 80}, {x: 75, y: -20}, 
+            {x: 60, y: -100}, {x: 0, y: -130}, {x: -60, y: -100}, 
+            {x: -75, y: -20}, {x: -65, y: 80}, {x: -45, y: 140}, {x: 0, y: 160},
+            {x: -20, y: 120}, {x: 20, y: 120}, 
+            {x: 25, y: 0}, {x: 60, y: 0}, {x: 40, y: -15}, {x: 25, y: 0}, // 右眼
+            {x: 0, y: 30}, // 鼻
+            {x: -25, y: 0}, {x: -60, y: 0}, {x: -40, y: -15}, {x: -25, y: 0} // 左眼
+        ];
+
+        ctx.save();
+        ctx.translate(hx, hy);
+        ctx.scale(scale, scale);
+
+        ctx.beginPath();
+        
+        let shake = (isAIActive && !isDead) ? 2.5 : 0; 
+
+        for (let i = 0; i < facePath.length; i++) {
+            let jx = (Math.random()-0.5) * shake;
+            let jy = (Math.random()-0.5) * shake;
+            if (i === 0) ctx.moveTo(facePath[i].x + jx, facePath[i].y + jy);
+            else ctx.lineTo(facePath[i].x + jx, facePath[i].y + jy);
+        }
+
+        // --- 狀態著色 (重點修改區) ---
+        if (isDead) {
+            // [石化狀態]
+            // 從白線變成了暗沉的灰色，對比極大
+            ctx.fillStyle = '#333'; 
+            ctx.fill();
+            ctx.strokeStyle = '#555'; 
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // 裂痕
+            ctx.beginPath();
+            ctx.strokeStyle = '#111';
+            ctx.lineWidth = 0.8;
+            cracks.forEach(c => {
+                ctx.moveTo(c.x, c.y);
+                ctx.lineTo(c.x + Math.cos(c.ang)*c.len, c.y + Math.sin(c.ang)*c.len);
+            });
+            ctx.stroke();
+
+        } else if (isAIActive) {
+            // [AI 高效狀態]
+            // 極致的亮白 + 強烈的青白光暈
+            ctx.strokeStyle = '#ffffff'; 
+            ctx.shadowBlur = 30;
+            ctx.shadowColor = 'rgba(0, 255, 255, 0.8)'; 
+            ctx.lineWidth = 3;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'; 
+            ctx.fill();
+            ctx.stroke();
+        } else {
+            // [待機/人類狀態]
+            // **純白色線條**，清晰、簡潔，與黑底形成鮮明對比
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5; // 線條稍微加粗一點點，確保在黑底上清楚
+            ctx.shadowBlur = 0; 
+            ctx.stroke();
+        }
+        
+        ctx.restore();
+    }
+
+    class Neuron {
+        constructor() {
+            let ang = Math.random() * Math.PI * 2;
+            let rad = Math.random() * 80;
+            this.baseX = Math.cos(ang) * rad;
+            this.baseY = Math.sin(ang) * rad - 10;
+            this.x = this.baseX; this.y = this.baseY;
+            this.vx = (Math.random()-0.5) * 0.3;
+            this.vy = (Math.random()-0.5) * 0.3;
+        }
+
+        update() {
+            if (isDead) return; 
+
+            if (isAIActive) {
+                this.x += (this.baseX - this.x) * 0.2;
+                this.y += (this.baseY - this.y) * 0.2;
+            } else {
+                this.x += this.vx;
+                this.y += this.vy;
+                if(Math.abs(this.x - this.baseX) > 15) this.vx *= -1;
+                if(Math.abs(this.y - this.baseY) > 15) this.vy *= -1;
+            }
+        }
+    }
+
+    class DataStream {
+        constructor(y, fontSize) {
+            this.y = y;
+            this.fontSize = fontSize;
+            this.x = -1000; 
+            this.speed = 0;
+            this.content = "";
+            this.active = false;
+        }
+
+        update() {
+            if (isAIActive && !isDead && !this.active) {
+                if (Math.random() < 0.08) { 
+                    this.active = true;
+                    this.x = w; 
+                    this.speed = Math.random() * 20 + 20; 
+                    
+                    let sourceArray;
+                    if (soul > 0.6) sourceArray = textPhases.human;
+                    else if (soul > 0.2) sourceArray = textPhases.processing;
+                    else sourceArray = textPhases.machine;
+
+                    this.content = sourceArray[Math.floor(Math.random() * sourceArray.length)];
+                }
+            }
+
+            if (this.active) {
+                this.x -= this.speed;
+                if (this.x + ctx.measureText(this.content).width < 0) {
+                    this.active = false;
+                }
+            }
+        }
+
+        draw(ctx) {
+            if (!this.active) return;
+            
+            ctx.font = `${this.fontSize}px "Courier New"`;
+            
+            if (isDead) {
+                ctx.fillStyle = '#555'; 
+            } else {
+                // 文字也改為非常亮的青白色，配合整體黑白對比
+                ctx.fillStyle = '#e0ffff'; 
+            }
+            
+            ctx.fillText(this.content, this.x, this.y);
+        }
+    }
+
+    // ================= 主循環 =================
+
+    init();
+
+    function animate() {
+        if (isAIActive && !isDead) {
+            soul -= 0.0025; 
+            if (soul <= 0) {
+                soul = 0;
+                isDead = true; 
+                isAIActive = false;
+            }
+        }
+
+        // 背景重繪：純黑
+        ctx.fillStyle = '#000000'; 
+        ctx.fillRect(0, 0, w, h);
+
+        dataStreams.forEach(ds => {
+            ds.update();
+            ds.draw(ctx);
+        });
+
+        let hx = w * 0.5;
+        let hy = h * 0.5;
+        let scale = Math.min(w, h) * 0.004;
+
+        ctx.save();
+        ctx.translate(hx, hy);
+        ctx.scale(scale, scale);
+
+        if (!isDead) {
+            neurons.forEach(n => n.update());
+            ctx.beginPath();
+            
+            let connectionThreshold = 2800 * Math.pow(soul, 2); 
+
+            for (let i = 0; i < neurons.length; i++) {
+                let n1 = neurons[i];
+                for (let j = i + 1; j < neurons.length; j++) {
+                    let n2 = neurons[j];
+                    let dist = (n1.x-n2.x)**2 + (n1.y-n2.y)**2;
+                    
+                    if (dist < connectionThreshold) {
+                        ctx.moveTo(n1.x, n1.y);
+                        ctx.lineTo(n2.x, n2.y);
+                    }
+                }
+            }
+            
+            // 連結線：白色，稍微透明
+            let linkAlpha = isAIActive ? 0.5 : 0.15; 
+            ctx.strokeStyle = `rgba(255, 255, 255, ${linkAlpha})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+
+            // 節點：白色
+            ctx.fillStyle = isAIActive ? '#fff' : `rgba(255, 255, 255, ${soul * 0.5})`;
+            neurons.forEach(n => {
+                if (Math.random() < soul + 0.1) {
+                    ctx.beginPath(); ctx.arc(n.x, n.y, 1.2, 0, Math.PI*2); ctx.fill();
+                }
+            });
+        }
+        ctx.restore();
+
+        drawFrontalFace();
+
+        if (isDead) {
+            for(let i=0; i<150; i++) {
+                ctx.fillStyle = `rgba(255,255,255,${Math.random()*0.05})`; // 死亡後的噪點改為微弱的灰白
+                ctx.fillRect(Math.random()*w, Math.random()*h, 2, 2);
+            }
+        }
+
+        time++;
+        requestAnimationFrame(animate);
+    }
+
+    animate();
+
+</script>
+</body>
+</html>
