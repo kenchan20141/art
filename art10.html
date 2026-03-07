@@ -63,21 +63,27 @@
             engine.x = width * 0.15;
             engine.y = height * 0.85;
 
-            if (nodes.length === 0) {
-                for (let i = 0; i < 3; i++) {
-                    nodes.push({
-                        x: width * 0.2 + Math.random() * (width * 0.6),
-                        y: height * 0.2 + Math.random() * (height * 0.6),
-                        r: 15,
-                        vx: (Math.random() - 0.5) * 0.5,
-                        vy: (Math.random() - 0.5) * 0.5,
-                        isDragging: false,
-                        offsetX: 0,
-                        offsetY: 0,
-                        isPowered: false
-                    });
-                }
+            // 修訂：確保節點數量永遠補足至 3 顆
+            // 原本的 if (nodes.length === 0) 在某些刷新情況下可能失效，改用 while 確保數量
+            while (nodes.length < 3) {
+                nodes.push({
+                    x: width * 0.2 + Math.random() * (width * 0.6),
+                    y: height * 0.2 + Math.random() * (height * 0.6),
+                    r: 15,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: (Math.random() - 0.5) * 0.5,
+                    isDragging: false,
+                    offsetX: 0,
+                    offsetY: 0,
+                    isPowered: false
+                });
             }
+
+            // 安全檢查：確保視窗縮放後，現有節點不會跑到畫面外
+            nodes.forEach(n => {
+                n.x = Math.max(n.r + 10, Math.min(width - n.r - 10, n.x));
+                n.y = Math.max(n.r + 10, Math.min(height - n.r - 10, n.y));
+            });
         }
 
         window.addEventListener('resize', initLayout);
@@ -205,7 +211,10 @@
             }
 
             for (let i = 1; i <= 3; i++) {
-                nodes[i-1].isPowered = connectedToEngine.has(i);
+                // 安全檢查：確保 nodes[i-1] 存在
+                if (nodes[i-1]) {
+                    nodes[i-1].isPowered = connectedToEngine.has(i);
+                }
             }
             isPowered = connectedToEngine.has(4);
         }
