@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reflections | Digital Art Museum</title>
+<style>
+    :root {
+        --bg: #0a0a0c;
+        --text-main: #f0f0f0;
+        --text-muted: #666666;
+        --accent: #d23838;
+    }
+    body {
+        margin: 0;
+        background-color: var(--bg);
+        color: var(--text-main);
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* 頂部策展宣言 */
+    .museum-header {
+        padding: 15vh 8vw 10vh;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .museum-header h1 {
+        font-size: clamp(3rem, 8vw, 6rem);
+        font-weight: 200;
+        letter-spacing: -2px;
+        margin: 0 0 20px 0;
+        text-transform: uppercase;
+    }
+    .museum-header p {
+        font-size: clamp(1rem, 2vw, 1.2rem);
+        color: var(--text-muted);
+        max-width: 600px;
+        line-height: 1.6;
+        font-weight: 300;
+    }
+
+    /* 展覽列表 (不對稱排版) */
+    .exhibition-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15vh;
+        padding: 0 8vw 20vh;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    /* 單個展品區塊 */
+    .exhibit-item {
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+        cursor: pointer;
+        group: exhibit;
+    }
+    /* 奇數與偶數交錯排列，營造高級感 */
+    @media (min-width: 768px) {
+        .exhibit-item { flex-direction: row; align-items: center; gap: 6vw; }
+        .exhibit-item:nth-child(even) { flex-direction: row-reverse; }
+        .exhibit-item:nth-child(odd) .preview-container { transform: translateX(-2vw); }
+        .exhibit-item:nth-child(even) .preview-container { transform: translateX(2vw); }
+    }
+
+    /* 預覽視窗 (純 CSS 繪製的意境預覽) */
+    .preview-container {
+        flex: 1;
+        aspect-ratio: 16 / 10;
+        background: #141417;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .preview-container::after {
+        content: ''; position: absolute; inset: 0;
+        border: 1px solid rgba(255,255,255,0.1);
+        transition: border-color 0.4s;
+    }
+    .exhibit-item:hover .preview-container { transform: scale(1.02); }
+    .exhibit-item:hover .preview-container::after { border-color: rgba(255,255,255,0.5); }
+
+    /* 展品資訊 */
+    .exhibit-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    .exhibit-num {
+        font-size: 0.9rem;
+        color: var(--accent);
+        letter-spacing: 2px;
+        margin-bottom: 10px;
+        font-weight: bold;
+    }
+    .exhibit-title {
+        font-size: clamp(2rem, 4vw, 3.5rem);
+        margin: 0 0 15px 0;
+        font-weight: 400;
+        transition: color 0.3s;
+    }
+    .exhibit-desc {
+        color: var(--text-muted);
+        font-size: 1.1rem;
+        max-width: 400px;
+    }
+    .exhibit-item:hover .exhibit-title { color: var(--accent); }
+
+   /* ================= 預覽圖的 CSS 藝術 ================= */
+    /* ART 1 預覽：混亂的點 (自動演示) */
+    .preview-art1 {
+        position: absolute; inset: 0; display: flex; flex-wrap: wrap; gap: 4px; padding: 20px; align-content: center; justify-content: center; opacity: 0.5;
+    }
+    .preview-art1 div { 
+        width: 10px; height: 10px; background: #fff; 
+    }
+    
+    /* 設定不同的漂移軌跡與週期，製造不規則的混亂感 */
+    @keyframes chaosMove1 {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); background: #fff; }
+        50% { transform: translate(20px, -15px) rotate(45deg); background: var(--accent); }
+    }
+    @keyframes chaosMove2 {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(-10px, 20px) scale(1.5); }
+    }
+    .preview-art1 div:nth-child(2n) { animation: chaosMove1 4s ease-in-out infinite; }
+    .preview-art1 div:nth-child(3n) { animation: chaosMove2 5s ease-in-out infinite; }
+
+    /* ART 2 預覽：結構與掉落 (自動演示) */
+    .preview-art2 {
+        position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0.5;
+    }
+    .art2-frame { width: 100px; height: 120px; border: 2px dashed #00d2ff; position: relative; }
+    .art2-block { 
+        width: 20px; height: 10px; background: var(--accent); position: absolute; left: 40px; 
+        /* 加入無限循環的掉落動畫 */
+        animation: autoDrop 3.5s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+    }
+    
+    /* 模擬積木從上方出現、掉入框內，再掉落消失的循環 */
+    @keyframes autoDrop {
+        0% { top: -40px; opacity: 0; }
+        10% { top: -40px; opacity: 1; }
+        35%, 75% { top: 90px; opacity: 1; } /* 停留在框內一段時間 */
+        90%, 100% { top: 150px; opacity: 0; }
+    }
+
+    /* ================= 獨立展品全螢幕播放器 ================= */
+    .viewer {
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background: #000; z-index: 1000;
+        opacity: 0; pointer-events: none;
+        transition: opacity 0.6s ease;
+    }
+    .viewer.active { opacity: 1; pointer-events: auto; }
+    iframe { width: 100%; height: 100%; border: none; display: block; }
+
+    /* UI 控制 (現代簡約風) */
+    .ui-top-bar {
+        position: absolute; top: 0; left: 0; width: 100%;
+        padding: 30px 40px; box-sizing: border-box;
+        display: flex; justify-content: space-between; align-items: flex-start;
+        z-index: 1010; pointer-events: none;
+    }
+    .ui-btn {
+        pointer-events: auto; background: none; border: none; color: #fff;
+        font-size: 0.9rem; letter-spacing: 2px; cursor: pointer;
+        opacity: 0.5; transition: opacity 0.3s, transform 0.3s;
+        text-transform: uppercase;
+    }
+    .ui-btn:hover { opacity: 1; transform: translateY(-2px); }
+
+    /* 賞析面板 (博物館解說牌風格) */
+    .analysis-panel {
+        position: absolute; bottom: 40px; right: 40px;
+        width: 350px; background: rgba(255, 255, 255, 0.95); color: #000;
+        padding: 30px; border-radius: 2px;
+        opacity: 0; transform: translateY(20px); pointer-events: none;
+        transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); z-index: 1005;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    .analysis-panel.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .analysis-panel h3 { margin: 0 0 15px 0; font-size: 1.2rem; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
+    .analysis-panel p { margin: 0; font-size: 0.95rem; line-height: 1.7; color: #333; text-align: justify; }
+
+    @media (max-width: 768px) {
+        .ui-top-bar { padding: 20px; }
+        .analysis-panel { width: 85vw; right: 50%; transform: translate(50%, 20px); bottom: 20px; }
+        .analysis-panel.show { transform: translate(50%, 0); }
+    }
+</style>
+</head>
+<body>
+
+<header class="museum-header">
+    <h1>Reflections</h1>
+    <p>一個關於生活反思與認知重構的數位藝術展覽。點擊畫布，進入互動空間，在混亂與秩序中尋找你的學習之道。</p>
+</header>
+
+<main class="exhibition-list" id="gallery">
+    <!-- 這裡將透過 JS 自動生成展品列表 -->
+</main>
+
+<!-- 全螢幕展區 -->
+<div class="viewer" id="viewer">
+    <iframe id="art-frame"></iframe>
+    
+    <div class="ui-top-bar">
+        <!-- 點擊顯示解說 -->
+        <button class="ui-btn" id="btn-info">[ 賞析 Read ]</button>
+        <!-- 關閉展品 -->
+        <button class="ui-btn" id="btn-close">[ 離開 Exit ]</button>
+    </div>
+
+    <div class="analysis-panel" id="analysis-panel">
+        <h3 id="analysis-title"></h3>
+        <p id="analysis-text"></p>
+    </div>
+</div>
+
+<script>
+    // 展品資料庫 (未來擴充只需在此新增)
+ 
+    const exhibits =[
+        {
+            id: 1,
+            url: "art1.html",
+            num: "NO. 01",
+            title: "失焦矩陣",
+            subtitle: "社交媒體與注意力的瓦解",
+            previewHTML: `<div class="preview-art1">${'<div></div>'.repeat(30)}</div>`,
+            analysis: "這件互動裝置具象化了數位時代的專注力危機。游標的每一次移動與點擊，都如同我們在社交媒體上的無心滑動，看似微不足道，卻不斷累積著混亂的變數。當外在的刺激超過臨界點，原本整齊的認知矩陣將徹底崩解。作品靜靜拋出一個提問：在碎片化資訊的洪流中，我們該如何守護內在的秩序。"
+        },
+        {
+            id: 2,
+            url: "art2.html",
+            num: "NO. 02",
+            title: "重構與歸類",
+            subtitle: "從碎片堆疊到框架思考",
+            previewHTML: `<div class="preview-art2"><div class="art2-frame"><div class="art2-block"></div></div></div>`,
+            analysis: "學習的過程往往面臨兩種截然不同的路徑。盲目堆積零散的細節，如同在沒有地基的狀態下築起高塔，隨時可能因微小的失衡而全面崩潰。相反地，建立宏觀的框架，則是先為知識劃定清晰的網格，讓繁雜的碎片能夠精準歸位。這組對比裝置揭示了系統化思考的價值：唯有先看見整體的輪廓，局部的細節才能找到安放的座標。"
+        }
+    ];
+
+    const gallery = document.getElementById('gallery');
+    const viewer = document.getElementById('viewer');
+    const artFrame = document.getElementById('art-frame');
+    const analysisPanel = document.getElementById('analysis-panel');
+    const analysisTitle = document.getElementById('analysis-title');
+    const analysisText = document.getElementById('analysis-text');
+
+    // 渲染主展廳
+    exhibits.forEach(ex => {
+        const article = document.createElement('article');
+        article.className = 'exhibit-item';
+        article.innerHTML = `
+            <div class="preview-container">
+                ${ex.previewHTML}
+            </div>
+            <div class="exhibit-info">
+                <div class="exhibit-num">${ex.num}</div>
+                <h2 class="exhibit-title">${ex.title}</h2>
+                <div class="exhibit-desc">${ex.subtitle}</div>
+            </div>
+        `;
+        
+        // 點擊進入展品
+        article.addEventListener('click', () => {
+            artFrame.src = ex.url;
+            analysisTitle.innerText = ex.title;
+            analysisText.innerText = ex.analysis;
+            viewer.classList.add('active');
+            analysisPanel.classList.remove('show');
+        });
+        gallery.appendChild(article);
+    });
+
+    // 關閉展品
+    document.getElementById('btn-close').addEventListener('click', () => {
+        viewer.classList.remove('active');
+        analysisPanel.classList.remove('show');
+        setTimeout(() => { artFrame.src = ""; }, 600);
+    });
+
+    // 切換賞析
+    document.getElementById('btn-info').addEventListener('click', () => {
+        analysisPanel.classList.toggle('show');
+    });
+</script>
+</body>
+</html>
