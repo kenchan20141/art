@@ -83,6 +83,7 @@
         /* 響應式排版 (電腦與平板) */
         @media (min-width: 769px) {
             .vertical-text { font-size: 2.2rem; line-height: 2.2; letter-spacing: 12px; height: 75vh; }
+            .zen-mode .vertical-text { letter-spacing: 15px; }
             .popup { width: 280px; padding: 12px; border-radius: 16px; }
             .popup-icon { font-size: 24px; }
             .popup-title { font-size: 13px; }
@@ -90,7 +91,17 @@
         }
         /* 響應式排版 (手機) */
         @media (max-width: 768px) {
-            .vertical-text { font-size: 1.2rem; line-height: 1.8; letter-spacing: 6px; height: 85vh; }
+            .vertical-text { 
+                font-size: 2.4rem; 
+                line-height: 1.5; 
+                letter-spacing: 0px; /* 取消所有字距 */
+                height: 85vh; 
+            }
+            .vertical-text .break {
+                display: none; 
+            }
+            .zen-mode .vertical-text { letter-spacing: 0px; } /* 通關時保持無字距 */
+            
             .popup { width: 80vw; max-width: 250px; padding: 10px; border-radius: 12px; }
             .popup-icon { font-size: 20px; }
             .popup-title { font-size: 12px; }
@@ -137,7 +148,7 @@
         .zen-mode .vertical-text {
             color: #ffeba1 !important;
             text-shadow: 0 0 20px rgba(212, 175, 55, 0.8), 0 0 40px rgba(212, 175, 55, 0.4);
-            letter-spacing: 15px; transform: scale(1.05);
+            transform: scale(1.05);
         }
         .zen-mode .zen-aura { opacity: 1; width: 120vw; height: 120vw; animation: auraBreathe 8s infinite ease-in-out; }
 
@@ -160,21 +171,8 @@
 
     <!-- 文字保護區 (Pointer-events: none) -->
     <div id="reader-container">
-        <div class="vertical-text" id="main-text">
-            大學之道<br>
-            在明明德<br>
-            在親民<br>
-            在止於至善<br>
-            知止而後有定<br>
-            定而後能靜<br>
-            靜而後能安<br>
-            安而後能慮<br>
-            慮而後能得<br>
-            物有本末<br>
-            事有終始<br>
-            知所先後<br>
-            則近道矣
-        </div>
+        <!-- 注意：為了避免HTML原始碼的縮排在手機版被當成空白字元，這裡必須緊密連在一起排版 -->
+        <div class="vertical-text" id="main-text">大學之道<br class="break">在明明德<br class="break">在親民<br class="break">在止於至善<br class="break">知止而後有定<br class="break">定而後能靜<br class="break">靜而後能安<br class="break">安而後能慮<br class="break">慮而後能得<br class="break">物有本末<br class="break">事有終始<br class="break">知所先後<br class="break">則近道矣</div>
     </div>
 
     <!-- 混亂結局畫布 -->
