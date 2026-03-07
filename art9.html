@@ -104,16 +104,20 @@
         let particles =[];
         let fragments =[];
 
-        function resize() {
+      function resize() {
             width = window.innerWidth; height = window.innerHeight;
             canvas.width = width; canvas.height = height;
             
             let isPortrait = height > width;
             
-            // ★ 新增：明確劃分各方向的「保留邊距 (px)」，確保迷宮絕對不會貼邊
-            let reservedTop = 80;    // 頂部強制保留 80px 空間，避開手機瀏海與邊緣
-            let reservedBottom = isPortrait ? 280 : 60; // 直向避開底部按鍵，橫向保留基本底距
-            let reservedRight = isPortrait ? 0 : 260;   // 橫向避開右側按鍵
+            // ★ 修改：明確劃分各方向的「保留邊距 (px)」
+            let reservedTop = 80;    // 頂部強制保留空間
+            
+            // ★ 重點修改：將直向模式的底部保留空間由 280 改為 360
+            // 這會讓迷宮計算可用高度時扣除更多底部空間，避免與按鍵重疊
+            let reservedBottom = isPortrait ? 360 : 60; 
+            
+            let reservedRight = isPortrait ? 0 : 260;   // 橫向模式避開右側按鍵
             let reservedLeft = 0;
 
             // 計算出扣除保留區後，「真正可用」來畫迷宮的寬高
@@ -127,6 +131,7 @@
             offsetX = reservedLeft + (avW - cols * cellSize) / 2;
             offsetY = reservedTop + (avH - rows * cellSize) / 2;
             
+            // 如果正在遊戲中，重新計算實體像素位置以免錯位
             if (state === 'play') { updateEntityPixelPos(player); updateEntityPixelPos(goal); }
         }
         window.addEventListener('resize', resize);
