@@ -981,6 +981,19 @@
     });
 
     window.onload = init;
+    // --- 全局按鍵微震動回饋 (Haptic Feedback) ---
+    document.addEventListener('click', (e) => {
+        // 定義哪些類別的元素點擊時需要觸發震動
+        // 包含：頂部 UI 按鈕、語言切換、底部導航點、以及展品列表本身
+        const clickable = e.target.closest('.ui-btn, .lang-toggle, .nav-node, .exhibit-item');
+        
+        if (clickable) {
+            // 檢查瀏覽器與裝置是否支援震動 API
+            if (navigator.vibrate) {
+                navigator.vibrate(20); // 觸發 15 毫秒的短促微震動，模擬高級實體按鍵感
+            }
+        }
+    });
 </script>
 </body>
 </html>
