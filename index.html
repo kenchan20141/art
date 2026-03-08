@@ -693,9 +693,28 @@
         setTimeout(() => { artFrame.src = ""; }, 800);
     });
 
-    document.getElementById('btn-info').addEventListener('click', () => {
-        analysisPanel.classList.toggle('show');
-    });
+   const btnInfo = document.getElementById('btn-info');
+
+// 1. 點擊「賞析」按鈕：切換面板顯示，並阻止事件冒泡
+btnInfo.addEventListener('click', (e) => {
+    e.stopPropagation(); 
+    analysisPanel.classList.toggle('show');
+});
+
+// 2. 點擊主畫面其他區域：若點擊的目標不在賞析面板內，則關閉面板
+document.addEventListener('click', (e) => {
+    if (analysisPanel.classList.contains('show') && !analysisPanel.contains(e.target)) {
+        analysisPanel.classList.remove('show');
+    }
+});
+
+// 3. 點擊 iframe (互動藝術) 內部：偵測焦點轉移以關閉面板
+window.addEventListener('blur', () => {
+    // 當使用者點擊 iframe 內部時，主視窗會失去焦點 (blur)
+    if (analysisPanel.classList.contains('show') && document.activeElement === artFrame) {
+        analysisPanel.classList.remove('show');
+    }
+});
 
     window.onload = init;
 </script>
