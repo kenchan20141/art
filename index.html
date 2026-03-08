@@ -388,7 +388,51 @@
 
 
 
+/* --- 新增：NO.14 預覽圖 CSS --- */
+    .preview-art14 { position: absolute; inset: 0; background: #050508; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .art14-c1, .art14-c2 {
+        position: absolute; width: 45px; height: 45px; border-radius: 50%; border: 4px solid;
+        transition: all 0.3s;
+    }
+    /* 第一個殘缺的圓（缺右側） */
+    .art14-c1 {
+        border-color: #88ccff transparent #88ccff #88ccff;
+        animation: a14-left 7s infinite cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    /* 第二個殘缺的圓（缺左側） */
+    .art14-c2 {
+        border-color: #ffaa66 #ffaa66 #ffaa66 transparent;
+        animation: a14-right 7s infinite cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    /* 越界碰撞時的排斥波紋 */
+    .art14-clash-wave {
+        position: absolute; width: 70px; height: 70px; border-radius: 50%;
+        border: 1px solid #d23838; opacity: 0;
+        animation: a14-wave 7s infinite;
+    }
 
+    @keyframes a14-left {
+        0%, 25% { transform: translateX(-35px) rotate(0deg); box-shadow: -5px 0 15px rgba(136,204,255,0.2); border-color: #88ccff transparent #88ccff #88ccff; }
+        40% { transform: translateX(-5px) rotate(20deg); }
+        /* 強行拼合時的混亂與發紅 */
+        45%, 55% { transform: translateX(-1px) rotate(15deg); border-color: #d23838 transparent #d23838 #d23838; box-shadow: none; }
+        48%, 52% { transform: translateX(-3px) rotate(-5deg); } /* 排斥的震動 */
+        70%, 100% { transform: translateX(-35px) rotate(360deg); box-shadow: -5px 0 15px rgba(136,204,255,0.2); border-color: #88ccff transparent #88ccff #88ccff; }
+    }
+    @keyframes a14-right {
+        0%, 25% { transform: translateX(35px) rotate(0deg); box-shadow: 5px 0 15px rgba(255,170,102,0.2); border-color: #ffaa66 #ffaa66 #ffaa66 transparent; }
+        40% { transform: translateX(5px) rotate(-20deg); }
+        /* 強行拼合時的混亂與發紅 */
+        45%, 55% { transform: translateX(1px) rotate(-15deg); border-color: #d23838 #d23838 #d23838 transparent; box-shadow: none; }
+        48%, 52% { transform: translateX(3px) rotate(5deg); } /* 排斥的震動 */
+        70%, 100% { transform: translateX(35px) rotate(-360deg); box-shadow: 5px 0 15px rgba(255,170,102,0.2); border-color: #ffaa66 #ffaa66 #ffaa66 transparent; }
+    }
+    @keyframes a14-wave {
+        44% { opacity: 0; transform: scale(0.5); border-width: 4px; }
+        45% { opacity: 0.8; transform: scale(1); border-width: 2px; }
+        55% { opacity: 0; transform: scale(1.5); border-width: 0px; }
+        100% { opacity: 0; }
+    }
 
 
 
@@ -461,6 +505,14 @@
             subtitle: "執念的枷鎖與共鳴的自由", 
             previewHTML: `<div class="preview-art13"><div class="art13-line"></div><div class="art13-dot"></div><div class="art13-center"></div></div>`, 
            analysis: "這件互動裝置深刻剖析了人際關係的本質，以及我們面對相聚與離別的態度。當我們懷抱控制慾，試圖強行捕捉並綁定周遭的個體時，換來的往往是恐懼、逃離，以及過度拉扯所留下的暗色傷疤。\n\n此外，作品的深意更在於揭示一個無奈卻美麗的生命常態：無論是朋友、戀人還是家人，每個人的人生軌跡都有屬於自己的「終點站」。他們注定只會在生命的某個階段與我們並肩同行，離別是必然的宿命。\n\n當我們放下緊抓不放的執念，以共鳴取代佔有，便能看見彼此交會時綻放的溫暖光芒。真正的愛與成熟，是懂得在他們到站離去時不再強留；學會坦然接受緣分的聚散，目送他們化作璀璨的光點，優雅而無憾地告別。"
+        },{ 
+            id: 14, 
+            url: "art14.html", 
+            num: "NO. 14", 
+            title: "越界的互補", 
+            subtitle: "再愛也要保持距離，沒有人能成為誰的救贖", 
+            previewHTML: `<div class="preview-art14"><div class="art14-c1"></div><div class="art14-c2"></div><div class="art14-clash-wave"></div></div>`, 
+            analysis: "這件裝置深刻剖析了親密關係中的「互補」迷思。畫面上兩個殘缺的幾何體，如同帶著各自創傷與缺陷的靈魂。當它們保持適當距離時，能在各自的軌道上平靜地散發出柔和的光芒；然而，一旦它們試圖越界，妄想用對方的存在來填補自己靈魂的缺口時，不僅無法完美契合，反而會引發劇烈的排斥與震盪，原本的光彩也會隨之被焦慮的血紅色吞噬。\n\n人生在世，誰都不完美，誰都無法真正「救贖」誰。與其病態地緊抓著一個同樣有缺陷的人來補自己的缺陷，不如學會帶著裂痕獨立旋轉。真正的愛，是我們承認各自的殘缺，留下呼吸的距離，卻依然能並肩同行。"
         }
     ];
 
