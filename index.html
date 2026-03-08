@@ -467,7 +467,94 @@
 
 
 
+/* ================= ART 16: 留白與賦予 ================= */
+    .preview-art16 { 
+        position: absolute; inset: 0; background: #0f0f11; 
+        display: flex; align-items: center; justify-content: center; overflow: hidden; 
+    }
+    .art16-text { 
+        color: #e6dfd1; font-family: var(--font-serif), 'Noto Serif TC', serif; 
+        font-size: 1.2rem; font-weight: 300;
+        letter-spacing: 1.5em; margin-right: -1.5em; /* 修正字距造成的偏移 */
+        animation: a16-breathe 5s infinite ease-in-out; 
+    }
+    @keyframes a16-breathe {
+        0%, 100% { opacity: 0; filter: blur(4px); transform: scale(0.98); }
+        50% { opacity: 0.85; filter: blur(0px); transform: scale(1); text-shadow: 0 0 15px rgba(230, 223, 209, 0.4); }
+    }
 
+    /* 給予詩句之間優雅的留白與呼吸感 */
+    #analysis-text p {
+        margin-bottom: 20px;
+    }
+    #analysis-text p:last-child {
+        margin-bottom: 0;
+    }
+
+  /* ================= ART 16 專屬：信紙賞析介面 (深色夜光版) ================= */
+    .special-analysis-paper {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -40%) scale(0.95);
+        width: 85vw; max-width: 600px;
+        height: 80vh; max-height: 850px;
+        
+        /* 【關鍵修改】改為深邃的深色毛玻璃，將「實體白紙」的專利還給藝術品 */
+        background-color: rgba(22, 20, 18, 0.75); 
+        backdrop-filter: blur(25px); 
+        -webkit-backdrop-filter: blur(25px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        box-shadow: 0 30px 60px rgba(0,0,0,0.9), inset 0 0 30px rgba(0, 0, 0, 0.5);
+        
+        /* 隱約的光澤對摺線 */
+        background-image: linear-gradient(to right, transparent 49.5%, rgba(255,255,255,0.03) 50%, transparent 50.5%);
+        opacity: 0; pointer-events: none;
+        transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        z-index: 2005;
+        font-family: 'Noto Serif TC', 'Songti TC', 'MingLiU', serif;
+    }
+
+    .special-analysis-paper.show {
+        opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto;
+    }
+
+    .special-paper-content {
+        position: absolute;
+        top: 10%; bottom: 8%; left: 8%; right: 8%;
+        z-index: 2;
+        overflow-y: auto;
+        padding: 0 5%; 
+        
+        /* 【關鍵修改】字體改為淡金色/羊皮紙色，宛如黑夜中透出的微光 */
+        color: #d8cbb8; 
+        font-size: 16px;
+        line-height: 48px; /* 鎖定行高 */
+        text-align: center; 
+        text-shadow: 0 0 10px rgba(0,0,0,0.5);
+        
+        /* 線條改為極淡的微光引導線 */
+        background-image: 
+            linear-gradient(to bottom, rgba(216, 203, 184, 0.25) 1px, transparent 1px),
+            repeating-linear-gradient(to bottom, transparent, transparent 47px, rgba(216, 203, 184, 0.06) 47px, rgba(216, 203, 184, 0.06) 48px);
+        
+        background-attachment: local, local;
+        background-position: top;
+    }
+
+    .special-paper-content p {
+        margin: 0;
+        padding-bottom: 48px; 
+    }
+
+    .special-paper-content p:last-child {
+        padding-bottom: 48px;
+    }
+
+    /* 深色介面專屬的優雅滾動條 */
+    .special-paper-content::-webkit-scrollbar { width: 4px; }
+    .special-paper-content::-webkit-scrollbar-track { background: transparent; }
+    .special-paper-content::-webkit-scrollbar-thumb { background: rgba(216, 203, 184, 0.2); border-radius: 4px; }
 
     
 </style>
@@ -509,12 +596,20 @@
         <button class="ui-btn" id="btn-info">[ 賞析 Read ]</button>
         <button class="ui-btn" id="btn-close">[ 離開 Exit ]</button>
     </div>
-    <div class="viewer-content">
+   <div class="viewer-content">
         <iframe id="art-frame"></iframe>
+        
+        <!-- 預設的賞析面板 (ART 1~15 使用) -->
         <div class="analysis-panel" id="analysis-panel">
             <h3 id="analysis-title"></h3>
             <p id="analysis-text"></p>
         </div>
+
+        <!-- ▼▼▼ 新增：ART 16 專屬的信紙賞析面板 ▼▼▼ -->
+        <div class="special-analysis-paper" id="special-paper-16">
+            <div class="special-paper-content" id="special-paper-text"></div>
+        </div>
+    </div>
     </div>
 </div>
 
@@ -544,6 +639,25 @@
             subtitle: "視野的侷限與宏大的風景", 
             previewHTML: `<div class="preview-art15"><div class="art15-spotlight"></div></div>`, 
             analysis: "這件互動裝置探索了人生的意義與視野的侷限。\n\n在起始的微觀視角中，我們只能看見粗糙、不完美的筆觸，宛如我們在黑暗與挫折中摸索的當下，感覺自己走出的這條路充滿瑕疵且毫無意義。然而，當我們不放棄地持續探索，隨著人生閱歷的累積，鏡頭會逐漸拉遠，那些原本雜亂無章的油彩，終將在視覺上產生融合，拼湊出一幅宏偉壯麗的世界級風景畫。\n\n只要你不放棄創造，退後一步看，你的人生便是一幅無可取代的大師之作。" 
+        },
+        { 
+            id: 16, 
+            url: "art16.html", 
+            num: "NO. 16", 
+            title: "留白的意義", 
+            subtitle: "等待，即結果；空白，即斑駁。", 
+            previewHTML: `<div class="preview-art16"><div class="art16-text">靜 候</div></div>`, 
+            analysis: `<p>停駐於此的你：</p>
+<p>若你還未經歷那無聲的六十秒，<br>請先試著在畫面中，默默守候。</p>
+<p>剛剛過去的六十秒，<br>無聲，漫長，或許還帶著些許未知。</p>
+<p>但此刻，這六十次心跳的時光，<br>已然永遠嵌進了這個空間裡。</p>
+<p>當信件終於浮現，而你將它打開，<br>裡面沒有任何提示，只有一頁空白的信箋。</p>
+<p>我們總習慣於追問事物的結果，<br>卻忘了，那些被我們稱之為珍貴的存在，<br>往往並非因為它們天生閃耀。</p>
+<p>而是因為在那段看似空白的歲月裡，<br>你選擇了守候，傾注了自己。</p>
+<p>信紙上沒有寫下隻字片語，<br>是因為它想溫柔地告訴你：<br>等待的過程，往往比結果更重要。</p>
+<p>結果或許只是一片無言的空白，<br>但你在這未知的一分鐘裡所投入的平靜與期盼，<br>本身已是最豐碩的收穫。</p>
+<p>人總是不自覺地，深愛著自己付出的軌跡。<br>若沒有你方才的耐心，這僅是一頁冰冷的白紙；<br>是你付出的光陰，賦予了它被打開的重量。</p>
+<p>願往後的日子，<br>你也能溫柔擁抱生命裡每一個未知的停頓。<br>因為值得珍惜的，<br>總會在你的注視中，安靜盛開。</p>`
         }
     ];
 
@@ -773,42 +887,76 @@
         });
     }
 
+  // 追蹤當前正在觀看的展品 ID
+    let currentViewingId = null;
+
     const viewer = document.getElementById('viewer');
     const artFrame = document.getElementById('art-frame');
     const analysisPanel = document.getElementById('analysis-panel');
+    const specialPaper16 = document.getElementById('special-paper-16'); // 抓取信紙
 
     function openViewer(exData) {
+        currentViewingId = exData.id; // 記錄當前 ID
         artFrame.src = exData.url;
+        
+        // 渲染常規的玻璃賞析面板文字
         document.getElementById('analysis-title').innerText = exData.title;
-        document.getElementById('analysis-text').innerText = exData.analysis;
+        document.getElementById('analysis-text').innerHTML = exData.analysis; 
+        
+        // 如果是 ART 16，則將詩句渲染進專屬信紙裡
+        if (exData.id === 16) {
+            document.getElementById('special-paper-text').innerHTML = exData.analysis;
+        }
         
         viewer.classList.add('active');
         document.getElementById('nav-deck').classList.add('nav-hidden');
+        
+        // 確保剛打開時，兩種賞析面板都是隱藏狀態
         analysisPanel.classList.remove('show');
+        specialPaper16.classList.remove('show');
     }
 
+    // 點擊「賞析 Read」按鈕的邏輯分流
+    const btnInfo = document.getElementById('btn-info');
+    btnInfo.addEventListener('click', (e) => {
+        e.stopPropagation(); 
+        if (currentViewingId === 16) {
+            // 是 ART 16，彈出信紙
+            specialPaper16.classList.toggle('show');
+            analysisPanel.classList.remove('show'); 
+        } else {
+            // 其他展品，彈出常規玻璃面板
+            analysisPanel.classList.toggle('show');
+            specialPaper16.classList.remove('show');
+        }
+    });
+
+    // 離開按鈕：關閉所有面板
     document.getElementById('btn-close').addEventListener('click', () => {
         viewer.classList.remove('active');
         analysisPanel.classList.remove('show');
+        specialPaper16.classList.remove('show');
         document.getElementById('nav-deck').classList.remove('nav-hidden');
         setTimeout(() => { artFrame.src = ""; }, 800);
     });
 
-    const btnInfo = document.getElementById('btn-info');
-    btnInfo.addEventListener('click', (e) => {
-        e.stopPropagation(); 
-        analysisPanel.classList.toggle('show');
-    });
-
+    // 點擊背景空白處關閉賞析面板
     document.addEventListener('click', (e) => {
         if (analysisPanel.classList.contains('show') && !analysisPanel.contains(e.target)) {
             analysisPanel.classList.remove('show');
         }
+        if (specialPaper16.classList.contains('show') && !specialPaper16.contains(e.target)) {
+            specialPaper16.classList.remove('show');
+        }
     });
 
+    // 畫面失焦防呆處理
     window.addEventListener('blur', () => {
         if (analysisPanel.classList.contains('show') && document.activeElement === artFrame) {
             analysisPanel.classList.remove('show');
+        }
+        if (specialPaper16.classList.contains('show') && document.activeElement === artFrame) {
+            specialPaper16.classList.remove('show');
         }
     });
 
