@@ -4,167 +4,258 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Reflections | Digital Art Museum</title>
+
+<!-- Fonts: Editorial Serif & Tech Sans -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Space+Grotesk:wght@300;400;600&display=swap" rel="stylesheet">
+
+<!-- GSAP & Lenis for Smooth Scroll & Auto ScrollTo -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollToPlugin.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/studio-freight/lenis@1.0.19/bundled/lenis.min.js"></script>
+
 <style>
     :root {
-        --bg: #0a0a0c;
-        --text-main: #f0f0f0;
-        --text-muted: #666666;
+        --bg: #030305;
+        --text-main: #f4f4f5;
+        --text-muted: #888890;
         --accent: #d23838;
         --accent-glow: rgba(210, 56, 56, 0.4);
-        --border-color: rgba(255, 255, 255, 0.1);
-    }
-    body {
-        margin: 0;
-        background-color: var(--bg);
-        color: var(--text-main);
-        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-        overflow-x: hidden;
-        -webkit-font-smoothing: antialiased;
+        --glass-bg: rgba(10, 10, 12, 0.65);
+        --glass-border: rgba(255, 255, 255, 0.08);
+        
+        --font-serif: 'Cormorant Garamond', serif;
+        --font-sans: 'Space Grotesk', sans-serif;
     }
 
-    /* 頂部策展宣言 */
+    /* === Reset & Base === */
+    * { box-sizing: border-box; }
+    body, html {
+        margin: 0; padding: 0; background-color: var(--bg); color: var(--text-main);
+        font-family: var(--font-sans); overflow-x: hidden; -webkit-font-smoothing: antialiased;
+    }
+    
+    /* Film Grain Noise */
+    .noise-overlay {
+        position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: 0.035;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    }
+
+    /* === Header (Editorial) === */
     .museum-header {
-        padding: 15vh 8vw 10vh;
-        max-width: 1200px;
-        margin: 0 auto;
+        height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;
+        text-align: center; position: relative; z-index: 10;
     }
     .museum-header h1 {
-        font-size: clamp(3rem, 8vw, 6rem);
-        font-weight: 200;
-        letter-spacing: -2px;
-        margin: 0 0 20px 0;
-        text-transform: uppercase;
+        font-family: var(--font-serif); font-size: clamp(3.5rem, 10vw, 8rem); font-weight: 300;
+        margin: 0; line-height: 0.9; letter-spacing: -2px; text-transform: uppercase;
+        background: linear-gradient(to bottom, #fff, #555); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
     .museum-header p {
-        font-size: clamp(1rem, 2vw, 1.2rem);
-        color: var(--text-muted);
-        max-width: 600px;
-        line-height: 1.6;
-        font-weight: 300;
+        font-size: clamp(1rem, 1.5vw, 1.2rem); color: var(--text-muted); max-width: 500px;
+        margin-top: 30px; font-weight: 300; letter-spacing: 1px; padding: 0 20px;
     }
+    .scroll-indicator {
+        position: absolute; bottom: 8vh; font-size: 0.8rem; letter-spacing: 4px; color: var(--text-muted);
+        text-transform: uppercase; animation: float 2s infinite ease-in-out; pointer-events: none;
+    }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(10px); } }
 
-    /* 展覽列表容器 */
+    /* === Exhibition List (Desktop Default) === */
     .exhibition-list {
-        display: flex;
-        flex-direction: column;
-        gap: 6vh;
-        padding: 0 6vw 5vh;
-        max-width: 1400px;
-        margin: 0 auto;
-        min-height: 60vh;
+        display: flex; flex-direction: column; gap: 20vh; padding: 10vh 5vw 25vh;
+        max-width: 1400px; margin: 0 auto; position: relative;
     }
+    /* Spotlight / Dimming effect */
+    .exhibition-list:has(.exhibit-item:hover) .exhibit-item:not(:hover) { opacity: 0.3; filter: grayscale(80%); }
 
-    /* 單個展品區塊 */
     .exhibit-item {
-        display: flex;
-        flex-direction: column; 
-        gap: 25px;
-        cursor: pointer;
-        padding-bottom: 8vh;
-        border-bottom: 1px solid var(--border-color);
-        opacity: 0; 
-        transform: translateY(20px);
-        animation: itemFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        position: relative; display: flex; align-items: center; width: 100%; min-height: 60vh;
+        transition: opacity 0.6s ease, filter 0.6s ease;
+        transform-style: preserve-3d; opacity: 0; transform: translateY(80px); cursor: pointer;
     }
-    .exhibit-item:last-child {
-        border-bottom: none;
-        padding-bottom: 0;
+    .exhibit-item:nth-child(even) { justify-content: flex-end; }
+    
+    /* Massive Background Number */
+    .exhibit-bg-num {
+        position: absolute; font-family: var(--font-serif); font-size: clamp(8rem, 20vw, 25rem);
+        font-weight: 600; color: rgba(255,255,255,0.02); z-index: 0; line-height: 1;
+        top: 50%; transform: translateY(-50%); pointer-events: none; transition: color 0.5s;
     }
-    @keyframes itemFadeIn { to { opacity: 1; transform: translateY(0); } }
+    .exhibit-item:nth-child(odd) .exhibit-bg-num { left: -5vw; }
+    .exhibit-item:nth-child(even) .exhibit-bg-num { right: -5vw; }
+    .exhibit-item:hover .exhibit-bg-num { color: rgba(210, 56, 56, 0.06); }
 
-    .exhibit-info { flex: 1; display: flex; flex-direction: column; }
-    .exhibit-num { font-size: 0.9rem; color: var(--accent); letter-spacing: 2px; margin-bottom: 10px; font-weight: bold; }
-    .exhibit-title { font-size: clamp(2rem, 4vw, 3.5rem); margin: 0 0 15px 0; font-weight: 400; transition: color 0.3s; }
-    .exhibit-desc { color: var(--text-muted); font-size: 1.1rem; max-width: 400px; }
-    .exhibit-item:hover .exhibit-title { color: var(--accent); }
+    .exhibit-content-wrapper {
+        display: flex; flex-direction: row; align-items: center; gap: 6vw; z-index: 2; width: 100%; 
+        transform: perspective(1000px); will-change: transform;
+    }
+    .exhibit-item:nth-child(even) .exhibit-content-wrapper { flex-direction: row-reverse; }
 
+    /* 3D Frame & Preview - 強化邊界清晰度 */
     .preview-container {
-        flex: 1; width: 100%; aspect-ratio: 16 / 10; background: #141417; position: relative; overflow: hidden;
-        transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        flex: 1.5; width: 100%; aspect-ratio: 16 / 10; background: #0a0a0c; position: relative; overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.15); 
+        background-color: #050508;
+        border-radius: 4px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.8); 
+        transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .preview-container::after { content: ''; position: absolute; inset: 0; border: 1px solid rgba(255,255,255,0.1); transition: border-color 0.4s; }
-    .exhibit-item:hover .preview-container { transform: scale(1.02); }
-    .exhibit-item:hover .preview-container::after { border-color: rgba(255,255,255,0.5); }
-
-    @media (min-width: 768px) {
-        .exhibition-list { gap: 15vh; padding: 0 8vw 10vh; }
-        .exhibit-item { flex-direction: row-reverse; align-items: center; gap: 6vw; padding-bottom: 0; border-bottom: none; }
-        .exhibit-item:nth-child(even) { flex-direction: row; }
-        .exhibit-item:nth-child(odd) .preview-container { transform: translateX(-2vw); }
-        .exhibit-item:nth-child(even) .preview-container { transform: translateX(2vw); }
-        .exhibit-item:nth-child(odd):hover .preview-container { transform: translateX(-2vw) scale(1.02); }
-        .exhibit-item:nth-child(even):hover .preview-container { transform: translateX(2vw) scale(1.02); }
-    }
-
-    /* ================= 導航控制台 (Navigation Deck) ================= */
-    .nav-deck-container {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background: rgba(10, 10, 12, 0.95);
-        backdrop-filter: blur(10px);
-        border-top: 1px solid var(--border-color);
-        padding: 20px 8vw;
-        box-sizing: border-box;
-        z-index: 900;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
-    }
-
-    .nav-deck-container.nav-hidden {
-        transform: translateY(100%);
-        opacity: 0;
+    /* 沿用初代設計的精緻內邊框 */
+    .preview-container::after { 
+        content: ''; position: absolute; inset: 0; 
+        border: 1px solid rgba(255,255,255,0.1); 
+        transition: border-color 0.4s; 
         pointer-events: none;
     }
-
-    .nav-status {
-        font-family: monospace;
-        color: var(--text-muted);
-        font-size: 0.8rem;
-        letter-spacing: 1px;
+    .exhibit-item:hover .preview-container { 
+        border-color: rgba(255,255,255,0.4); 
+        box-shadow: 0 30px 60px rgba(210,56,56,0.15); 
+        transform: scale(1.02); 
     }
-    .nav-current-page {
-        color: var(--accent);
-        font-weight: bold;
+    .exhibit-item:hover .preview-container::after { 
+        border-color: rgba(255,255,255,0.5); 
+    }
+    
+    /* Text Info */
+    .exhibit-info { flex: 1; pointer-events: none; }
+    .exhibit-num { font-size: 1rem; color: var(--accent); letter-spacing: 4px; margin-bottom: 15px; font-weight: 600; }
+    .exhibit-title { font-family: var(--font-serif); font-size: clamp(2rem, 4vw, 4rem); margin: 0 0 20px 0; font-weight: 300; line-height: 1.1; font-style: italic; }
+    .exhibit-desc { color: var(--text-muted); font-size: 1.1rem; max-width: 400px; line-height: 1.6; font-weight: 300; }
+
+
+    /* ================= 手機版 (Mobile) ================= */
+    @media (max-width: 768px) {
+        .exhibition-list { gap: 12vh; padding: 5vh 5vw 20vh; }
+        .exhibit-item { min-height: auto; align-items: stretch; }
+        .exhibit-content-wrapper { flex-direction: column !important; position: relative; gap: 0; }
+        
+        .preview-container { 
+            aspect-ratio: 4 / 5; border-radius: 8px; width: 100%; flex: none;
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+        }
+        
+        /* 文字懸浮卡片 */
+        .exhibit-info {
+            position: absolute; bottom: -30px; left: 5%; width: 90%;
+            background: rgba(12, 12, 15, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            padding: 25px; border-radius: 8px; 
+            border: 1px solid rgba(255,255,255,0.2); 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8); z-index: 10;
+        }
+        .exhibit-num { margin-bottom: 10px; font-size: 0.85rem; }
+        .exhibit-title { font-size: 2.2rem; margin-bottom: 10px; }
+        .exhibit-desc { font-size: 0.95rem; line-height: 1.5; color: #aaa; }
+        .exhibit-info::after {
+            content: 'TAP TO EXPLORE →'; display: block; margin-top: 15px;
+            font-size: 0.75rem; letter-spacing: 2px; color: var(--accent); font-weight: 600;
+        }
+
+        .exhibit-bg-num {
+            font-size: 40vw; top: -5%; right: 0; left: auto !important; transform: none;
+            color: transparent !important; -webkit-text-stroke: 1px rgba(255,255,255,0.15);
+            z-index: 5;
+        }
+        
+        .exhibition-list:has(.exhibit-item:hover) .exhibit-item:not(:hover) { opacity: 1; filter: none; }
+        .exhibit-item:hover .preview-container { transform: none; box-shadow: 0 15px 35px rgba(0,0,0,0.6); }
     }
 
-    .nav-track {
-        display: flex;
-        gap: 4px;
-        align-items: center;
-    }
 
+    /* === Glassmorphic Navigation Deck === */
+    .nav-deck-container {
+        position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+        background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--glass-border); border-radius: 100px;
+        padding: 15px 30px; z-index: 900; display: flex; gap: 40px; align-items: center;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.8); transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
+    }
+    .nav-deck-container.nav-hidden { transform: translate(-50%, 150%); opacity: 0; pointer-events: none; }
+
+    .nav-status { font-family: var(--font-sans); color: var(--text-muted); font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; }
+    .nav-current-page { color: #fff; font-weight: 600; }
+
+    .nav-track { display: flex; gap: 10px; align-items: center; }
     .nav-node {
-        width: 60px;
-        height: 4px;
-        background: #333;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        position: relative;
+        width: 40px; height: 3px; background: rgba(255,255,255,0.2); position: relative;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); cursor: pointer;
     }
-
-    .nav-node:hover {
-        background: #666;
-        height: 8px;
-        box-shadow: 0 0 10px rgba(255,255,255,0.2);
-    }
-
-    .nav-node.active {
-        background: var(--accent);
-        height: 12px;
-        box-shadow: 0 0 15px var(--accent-glow);
-    }
+    .nav-node::after { content: ''; position: absolute; top: -15px; bottom: -15px; left: -5px; right: -5px; }
+    .nav-node:hover { background: #fff; height: 5px; transform: scale(1.1); }
+    .nav-node.active { background: var(--accent); height: 5px; box-shadow: 0 0 15px var(--accent-glow); width: 60px; }
 
     @media (max-width: 768px) {
-        .nav-deck-container { flex-direction: column; gap: 15px; padding: 15px 5vw; }
-        .nav-track { width: 100%; justify-content: center; }
-        .nav-node { flex: 1; max-width: 50px; }
+        .nav-deck-container { bottom: 20px; width: 90%; flex-direction: column; gap: 15px; border-radius: 20px; padding: 20px; }
+        .nav-node { width: 30px; } .nav-node.active { width: 40px; }
     }
 
-    /* ================= 預覽圖 CSS ================= */
+    /* ================= 播放器 UI (獨立空間防重疊 ＋ 深色高級賞析面板) ================= */
+    .viewer {
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background: #000; z-index: 2000; 
+        opacity: 0; pointer-events: none;
+        transition: opacity 0.6s ease;
+        display: flex; flex-direction: column; /* 上下切割避免重疊 */
+    }
+    .viewer.active { opacity: 1; pointer-events: auto; }
+
+    .ui-top-bar {
+        width: 100%; padding: 20px 40px; box-sizing: border-box;
+        display: flex; justify-content: space-between; align-items: center;
+        background: #0a0a0c; border-bottom: 1px solid rgba(255, 255, 255, 0.08); 
+        z-index: 1010;
+        position: relative; 
+    }
+    .ui-btn {
+        background: none; border: none; color: #fff; font-size: 0.9rem; letter-spacing: 2px; cursor: pointer; opacity: 0.5; transition: opacity 0.3s, transform 0.3s; text-transform: uppercase;
+        font-family: var(--font-sans);
+    }
+    .ui-btn:hover { opacity: 1; transform: translateY(-2px); }
+    
+    .viewer-content { flex: 1; position: relative; width: 100%; overflow: hidden; }
+    iframe { width: 100%; height: 100%; border: none; display: block; }
+
+    /* 深色高級毛玻璃賞析面板 */
+    .analysis-panel {
+        position: absolute; bottom: 50px; right: 5vw; width: 420px; max-height: 70vh; overflow-y: auto;
+        background: rgba(15, 15, 18, 0.85); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+        border: 1px solid var(--glass-border); border-radius: 12px; padding: 40px;
+        opacity: 0; transform: translateY(40px) scale(0.95); pointer-events: none;
+        transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 30px 60px rgba(0,0,0,0.8); z-index: 2005;
+    }
+    
+    .analysis-panel::-webkit-scrollbar { width: 4px; }
+    .analysis-panel::-webkit-scrollbar-track { background: transparent; }
+    .analysis-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+
+    .analysis-panel.show { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+    
+    /* 紅色斜體優雅標題 */
+    .analysis-panel h3 { 
+        font-family: var(--font-serif); font-size: 2rem; margin: 0 0 20px 0; 
+        font-weight: 300; font-style: italic; color: var(--accent); 
+    }
+    /* 灰色清晰內文 */
+    .analysis-panel p { 
+        margin: 0; font-size: 0.95rem; line-height: 1.8; color: #ccc; 
+        text-align: justify; font-family: var(--font-sans); font-weight: 300; 
+    }
+    
+    @media (max-width: 768px) {
+        .ui-top-bar { padding: 15px 20px; }
+        .analysis-panel { 
+            width: 90vw; 
+            right: 5vw; 
+            bottom: 30px; 
+            padding: 30px;
+            max-height: 60vh;
+        }
+    }
+
+    /* ================= 原生預覽圖純 CSS 藝術 (維持原樣) ================= */
     .preview-art1 { position: absolute; inset: 0; display: flex; flex-wrap: wrap; gap: 4px; padding: 20px; align-content: center; justify-content: center; opacity: 0.5; }
     .preview-art1 div { width: 10px; height: 10px; background: #fff; }
     @keyframes chaosMove1 { 0%, 100% { transform: translate(0, 0) rotate(0deg); background: #fff; } 50% { transform: translate(20px, -15px) rotate(45deg); background: var(--accent); } }
@@ -233,246 +324,66 @@
     @keyframes art8FaceAppear { 0%, 60% { opacity: 0; transform: translate(-50%, -50%) scale(0); } 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
     @keyframes art8SceneRotate { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-    /* ART9 Preview Style */
     .preview-art9 { position: absolute; inset: 0; background: #030308; overflow: hidden; display: flex; align-items: center; justify-content: center; }
     .art9-maze { position: absolute; border: 2px solid #475569; width: 100px; height: 60px; border-radius: 4px; opacity: 0.4; }
     .art9-p1 { width: 16px; height: 16px; background: #3b82f6; border-radius: 50%; position: absolute; animation: art9Rebel 5s infinite cubic-bezier(0.25, 1, 0.5, 1); }
     .art9-p2 { width: 16px; height: 16px; background: #ef4444; border-radius: 50%; position: absolute; animation: art9RebelTarget 5s infinite cubic-bezier(0.25, 1, 0.5, 1); }
     .art9-burst { position: absolute; width: 0; height: 0; border-radius: 50%; border: 2px solid #0ff; opacity: 0; animation: art9BurstAnim 5s infinite; }
-    @keyframes art9Rebel {
-        0%, 20% { transform: translate(-40px, 0) scale(1); background: #3b82f6; }
-        40% { transform: translate(0, 0) scale(1.5); background: #fff; box-shadow: 0 0 20px #0ff; }
-        50%, 100% { transform: translate(0, -150px) scale(0); background: #fff; }
-    }
-    @keyframes art9RebelTarget {
-        0%, 20% { transform: translate(40px, 0) scale(1); background: #ef4444; }
-        40% { transform: translate(0, 0) scale(1.5); background: #fff; box-shadow: 0 0 20px #f0f; }
-        50%, 100% { transform: translate(0, -150px) scale(0); background: #fff; }
-    }
-    @keyframes art9BurstAnim {
-        0%, 38% { width: 0; height: 0; opacity: 0; }
-        40% { width: 20px; height: 20px; opacity: 1; border-width: 5px; }
-        60%, 100% { width: 200px; height: 200px; opacity: 0; border-width: 1px; }
-    }
+    @keyframes art9Rebel { 0%, 20% { transform: translate(-40px, 0) scale(1); background: #3b82f6; } 40% { transform: translate(0, 0) scale(1.5); background: #fff; box-shadow: 0 0 20px #0ff; } 50%, 100% { transform: translate(0, -150px) scale(0); background: #fff; } }
+    @keyframes art9RebelTarget { 0%, 20% { transform: translate(40px, 0) scale(1); background: #ef4444; } 40% { transform: translate(0, 0) scale(1.5); background: #fff; box-shadow: 0 0 20px #f0f; } 50%, 100% { transform: translate(0, -150px) scale(0); background: #fff; } }
+    @keyframes art9BurstAnim { 0%, 38% { width: 0; height: 0; opacity: 0; } 40% { width: 20px; height: 20px; opacity: 1; border-width: 5px; } 60%, 100% { width: 200px; height: 200px; opacity: 0; border-width: 1px; } }
 
-
-
-
-
-
-
-
-/* ART10 Preview Style */
     .preview-art10 { position: absolute; inset: 0; background: #08080a; display: flex; align-items: center; justify-content: center; overflow: hidden; }
     .art10-core-p { width: 40px; height: 40px; border: 4px dashed #555; border-radius: 50%; position: relative; animation: art10Struggle 6s infinite; }
     .art10-node-p { position: absolute; width: 10px; height: 10px; background: #00FFC8; border-radius: 50%; top: 20%; right: 20%; opacity: 0; animation: art10Connect 6s infinite; }
     .art10-line-p { position: absolute; top: 50%; left: 50%; width: 0; height: 2px; background: #00FFC8; transform-origin: left center; transform: rotate(-45deg); opacity: 0; animation: art10Link 6s infinite; }
-    
-    @keyframes art10Struggle {
-        0%, 40% { transform: rotate(0deg); border-color: #555; box-shadow: none; }
-        10%, 30% { transform: rotate(5deg); border-color: #d23838; } /* 模擬死磕時的震動 */
-        20%, 35% { transform: rotate(-5deg); border-color: #d23838; }
-        45% { transform: rotate(0deg); border-color: #555; }
-        50% { border-color: #00FFC8; transform: rotate(0deg); box-shadow: 0 0 15px #00FFC8; }
-        100% { border-color: #00FFC8; transform: rotate(360deg); box-shadow: 0 0 15px #00FFC8; } /* 連結後的順暢旋轉 */
-    }
-    @keyframes art10Connect {
-        0%, 45% { opacity: 0; transform: scale(0); }
-        50%, 100% { opacity: 1; transform: scale(1); }
-    }
-    @keyframes art10Link {
-        0%, 45% { width: 0; opacity: 0; }
-        50%, 100% { width: 60px; opacity: 1; }
-    }
+    @keyframes art10Struggle { 0%, 40% { transform: rotate(0deg); border-color: #555; box-shadow: none; } 10%, 30% { transform: rotate(5deg); border-color: #d23838; } 20%, 35% { transform: rotate(-5deg); border-color: #d23838; } 45% { transform: rotate(0deg); border-color: #555; } 50% { border-color: #00FFC8; transform: rotate(0deg); box-shadow: 0 0 15px #00FFC8; } 100% { border-color: #00FFC8; transform: rotate(360deg); box-shadow: 0 0 15px #00FFC8; } }
+    @keyframes art10Connect { 0%, 45% { opacity: 0; transform: scale(0); } 50%, 100% { opacity: 1; transform: scale(1); } }
+    @keyframes art10Link { 0%, 45% { width: 0; opacity: 0; } 50%, 100% { width: 60px; opacity: 1; } }
 
-
-
-
-
-/* ART11 Preview Style: 定靜的試煉 */
     .preview-art11 { position: absolute; inset: 0; background: #030303; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-    
-    /* 模擬中間的古文閱讀區 */
-    .art11-text-beam { 
-        width: 4px; 
-        height: 60px; 
-        background: #d0d0d0; 
-        box-shadow: 0 0 10px rgba(255,255,255,0.5);
-        animation: art11FocusLoss 4s infinite ease-in-out;
-    }
+    .art11-text-beam { width: 4px; height: 60px; background: #d0d0d0; box-shadow: 0 0 10px rgba(255,255,255,0.5); animation: art11FocusLoss 4s infinite ease-in-out; }
+    .art11-popup { position: absolute; width: 30px; height: 20px; border-radius: 4px; opacity: 0; animation: art11Distraction 4s infinite ease-in-out; }
+    .art11-popup:nth-child(2) { background: #ff4444; top: 30%; right: 25%; animation-delay: 0s; } .art11-popup:nth-child(3) { background: #25d366; bottom: 30%; left: 25%; animation-delay: 2s; }
+    @keyframes art11FocusLoss { 0%, 10%, 90%, 100% { height: 80px; opacity: 1; filter: blur(0px); transform: scaleY(1); background: #fff; } 40%, 60% { height: 40px; opacity: 0.3; filter: blur(4px); transform: scaleY(0.8); background: #555; } }
+    @keyframes art11Distraction { 0%, 10%, 90%, 100% { transform: scale(0); opacity: 0; } 30% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 15px rgba(255,255,255,0.5); } 50% { transform: scale(1); opacity: 0.8; } 70% { transform: scale(0); opacity: 0; } }
 
-    /* 模擬彈出的通知視窗 */
-    .art11-popup {
-        position: absolute;
-        width: 30px; 
-        height: 20px; 
-        border-radius: 4px;
-        opacity: 0;
-        animation: art11Distraction 4s infinite ease-in-out;
-    }
-    
-    /* 紅色通知 */
-    .art11-popup:nth-child(2) { background: #ff4444; top: 30%; right: 25%; animation-delay: 0s; }
-    /* 綠色通知 */
-    .art11-popup:nth-child(3) { background: #25d366; bottom: 30%; left: 25%; animation-delay: 2s; }
-
-    @keyframes art11FocusLoss {
-        0%, 10%, 90%, 100% { 
-            height: 80px; 
-            opacity: 1; 
-            filter: blur(0px); 
-            transform: scaleY(1);
-            background: #fff;
-        }
-        40%, 60% { 
-            height: 40px; 
-            opacity: 0.3; 
-            filter: blur(4px); /* 模擬失焦 */
-            transform: scaleY(0.8);
-            background: #555;
-        }
-    }
-
-    @keyframes art11Distraction {
-        0%, 10%, 90%, 100% { transform: scale(0); opacity: 0; }
-        30% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 15px rgba(255,255,255,0.5); }
-        50% { transform: scale(1); opacity: 0.8; }
-        70% { transform: scale(0); opacity: 0; }
-    }
-
-
-
-
-
-
-/* ART12 Preview Style: 控制的幻覺 */
     .preview-art12 { position: absolute; inset: 0; background: #0f1015; overflow: hidden; display: flex; justify-content: center; }
     .art12-limit-line { position: absolute; top: 35%; width: 100%; height: 1px; background: rgba(255, 60, 60, 0.7); box-shadow: 0 0 5px rgba(255, 0, 0, 0.4); z-index: 2; }
     .art12-ball-drop { position: absolute; width: 4px; height: 4px; background: #fff; border-radius: 50%; animation: art12DropAnim 2s infinite ease-in; opacity: 0; }
     .art12-stack-bar { position: absolute; bottom: 20px; width: 12px; background: #444; animation: art12StackAnim 4s infinite steps(6); }
-    
-    /* 讓球和柱子有不同的時間差與位置 */
-    .art12-ball-drop:nth-child(2) { left: 45%; animation-delay: 0s; }
-    .art12-ball-drop:nth-child(3) { left: 55%; animation-delay: 1s; }
-    
-    .art12-stack-bar:nth-child(4) { left: 43%; animation-delay: 0.2s; }
-    .art12-stack-bar:nth-child(5) { left: 53%; animation-delay: 1.2s; }
-
-    @keyframes art12DropAnim {
-        0% { top: 0; opacity: 1; transform: translateX(0); }
-        20% { transform: translateX(5px); }
-        40% { transform: translateX(-5px); }
-        60% { top: 65%; opacity: 1; }
-        61% { opacity: 0; }
-        100% { opacity: 0; }
-    }
-    @keyframes art12StackAnim {
-        0% { height: 0; background: #444; }
-        80% { height: 60%; background: #666; } 
-        90%, 100% { height: 66%; background: #d23838; box-shadow: 0 0 15px #d23838; } /* 觸線變紅 */
-    }
-
-
-
-
-
-
-
-
-
-
-    /* ================= 播放器 UI ================= */
-    .viewer {
-        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-        background: #000; z-index: 1000;
-        opacity: 0; pointer-events: none;
-        transition: opacity 0.6s ease;
-        display: flex; flex-direction: column;
-    }
-    .viewer.active { opacity: 1; pointer-events: auto; }
-
-    .ui-top-bar {
-        width: 100%; padding: 20px 40px; box-sizing: border-box;
-        display: flex; justify-content: space-between; align-items: center;
-        background: var(--bg); border-bottom: 1px solid rgba(255, 255, 255, 0.08); 
-        z-index: 1010;
-    }
-    .ui-btn {
-        background: none; border: none; color: #fff; font-size: 0.9rem; letter-spacing: 2px; cursor: pointer; opacity: 0.5; transition: opacity 0.3s, transform 0.3s; text-transform: uppercase;
-    }
-    .ui-btn:hover { opacity: 1; transform: translateY(-2px); }
-    .viewer-content { flex: 1; position: relative; width: 100%; overflow: hidden; }
-    iframe { width: 100%; height: 100%; border: none; display: block; }
-
-    /* 修訂：優化賞析面板，避免文字被切斷 */
-    .analysis-panel {
-        position: absolute; 
-        bottom: 100px; /* 提高底部距離 */
-        right: 40px; 
-        width: 380px; 
-        max-height: calc(100vh - 200px); /* 限制最高高度 */
-        overflow-y: auto; /* 超出時可滾動 */
-        background: rgba(255, 255, 255, 0.95); 
-        color: #000; 
-        padding: 30px; 
-        border-radius: 4px;
-        opacity: 0; 
-        transform: translateY(20px); 
-        pointer-events: none; 
-        transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); 
-        z-index: 1005; 
-        box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-    }
-    
-    /* 美化滾動條 */
-    .analysis-panel::-webkit-scrollbar { width: 6px; }
-    .analysis-panel::-webkit-scrollbar-track { background: transparent; }
-    .analysis-panel::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
-
-    .analysis-panel.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
-    .analysis-panel h3 { margin: 0 0 15px 0; font-size: 1.2rem; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
-    .analysis-panel p { margin: 0; font-size: 0.95rem; line-height: 1.7; color: #333; text-align: justify; }
-    
-    @media (max-width: 768px) {
-        .ui-top-bar { padding: 15px 20px; }
-        .analysis-panel { 
-            width: 85vw; 
-            right: 50%; 
-            bottom: 80px; /* 手機版提高位置 */
-            padding: 25px;
-            max-height: 60vh;
-            transform: translate(50%, 20px); 
-        }
-        .analysis-panel.show { transform: translate(50%, 0); }
-        .nav-deck-container { padding-bottom: 30px; } 
-    }
+    .art12-ball-drop:nth-child(2) { left: 45%; animation-delay: 0s; } .art12-ball-drop:nth-child(3) { left: 55%; animation-delay: 1s; }
+    .art12-stack-bar:nth-child(4) { left: 43%; animation-delay: 0.2s; } .art12-stack-bar:nth-child(5) { left: 53%; animation-delay: 1.2s; }
+    @keyframes art12DropAnim { 0% { top: 0; opacity: 1; transform: translateX(0); } 20% { transform: translateX(5px); } 40% { transform: translateX(-5px); } 60% { top: 65%; opacity: 1; } 61% { opacity: 0; } 100% { opacity: 0; } }
+    @keyframes art12StackAnim { 0% { height: 0; background: #444; } 80% { height: 60%; background: #666; } 90%, 100% { height: 66%; background: #d23838; box-shadow: 0 0 15px #d23838; } }
 </style>
 </head>
 <body>
 
-<header class="museum-header">
+<!-- Film Grain Texture -->
+<div class="noise-overlay"></div>
+
+<header class="museum-header" id="header">
     <h1>Reflections</h1>
     <p>一個關於生活反思與學習認知的數位藝術展覽。</p>
+    <div class="scroll-indicator">Scroll to Explore</div>
 </header>
 
 <main class="exhibition-list" id="gallery">
-    <!-- JS 生成展品 -->
+    <!-- JS 動態生成展品 -->
 </main>
 
-<!-- 底部留白，避免內容被導航列遮住 -->
-<div style="height: 120px;"></div>
-
-<!-- 導航控制台 (已移除羅馬數字顯示，保留 SECTOR 狀態) -->
-<nav class="nav-deck-container">
+<!-- 底部導航儀表板 -->
+<nav class="nav-deck-container" id="nav-deck">
     <div class="nav-status">
-        SECTOR STATUS: <span id="current-sector-display" class="nav-current-page">01</span> / <span id="total-sector-display">02</span>
+        Sector <span id="current-sector-display" class="nav-current-page">01</span> / <span id="total-sector-display">02</span>
     </div>
     <div class="nav-track" id="nav-track">
-        <!-- JS 將自動生成節點指示器 -->
+        <!-- JS 生成節點 -->
     </div>
 </nav>
 
-<!-- 全螢幕展區 -->
+<!-- 全螢幕展區 (獨立空間防重疊 ＋ 深色高級賞析面板) -->
 <div class="viewer" id="viewer">
     <div class="ui-top-bar">
         <button class="ui-btn" id="btn-info">[ 賞析 Read ]</button>
@@ -488,165 +399,177 @@
 </div>
 
 <script>
-    const exhibits =[
+    const exhibits = [
         { id: 1, url: "art1.html", num: "NO. 01", title: "失焦矩陣", subtitle: "社交媒體與注意力的瓦解", previewHTML: `<div class="preview-art1">${'<div></div>'.repeat(30)}</div>`, analysis: "這件互動裝置具象化了數位時代的專注力危機。游標的每一次移動與點擊，都如同我們在社交媒體上的無心滑動，看似微不足道，卻不斷累積著混亂的變數。當外在的刺激超過臨界點，原本整齊的認知矩陣將徹底崩解。作品靜靜拋出一個提問：在碎片化資訊的洪流中，我們該如何守護內在的秩序。" },
         { id: 2, url: "art2.html", num: "NO. 02", title: "重構與歸類", subtitle: "從碎片堆疊到框架思考", previewHTML: `<div class="preview-art2"><div class="art2-frame"><div class="art2-block"></div></div></div>`, analysis: "學習的過程往往面臨兩種截然不同的路徑。盲目堆積零散的細節，如同在沒有地基的狀態下築起高塔，隨時可能因微小的失衡而全面崩潰。相反地，建立宏觀的框架，則是先為知識劃定清晰的網格，讓繁雜的碎片能夠精準歸位。這組對比裝置揭示了系統化思考的價值：唯有先看見整體的輪廓，局部的細節才能找到安放的座標。" },
         { id: 3, url: "art3.html", num: "NO. 03", title: "徒勞的完美", subtitle: "完美主義的無盡迴圈與崩潰", previewHTML: `<div class="preview-art3">${'<div class="p-dot"></div>'.repeat(16)}</div>`, analysis: "這件互動裝置精準地諷刺了學生在學習過程中對「完美」的過度執著。畫布上微小的瑕疵總誘使我們去修正，但如同現實中的「打地鼠」，過度苛求細節的代價，往往是引發更多預料之外的混亂。當修復的動作本身成為破壞整體結構的根源，作品揭示了一個殘酷的悖論：無止盡的完美主義，終究是一場徒勞無功的自我消耗。有時候，接受適度的不完美，才是維持系統運作的正解。" },
-        { id: 4, url: "art4.html", num: "NO. 04", title: "算計與詩篇", subtitle: "即時成就感與延遲的靈魂", previewHTML: `<div class="preview-art4"><div class="art4-poem">用數字填滿留白，連靈魂也無法閱讀。</div><div class="art4-math">+100</div><div class="art4-math">8923</div><div class="art4-ring"></div></div>`, analysis: "這件作品諷刺了當代學生過度追求量化成績與「即時滿足」的現象。畫面上不斷彈出的數字，象徵著算計與速成的成就感，你可以輕易透過點擊與滑動獲得分數；但代價是，代表內在涵養的文學詩篇會逐漸被亂碼吞噬。語文的學習沒有捷徑，它需要「延遲滿足」——唯有當你克制住追逐分數的衝動，在空白處耐心長按停留，拒絕干擾，文字真正的意義與美麗才會向你顯現。" },
+        { id: 4, url: "art4.html", num: "NO. 04", title: "算計與詩篇", subtitle: "即時成就感與延遲的靈魂", previewHTML: `<div class="preview-art4"><div class="art4-poem">用數字填滿留白，連靈魂也無法閱讀。</div><div class="art4-math">+100</div><div class="art4-math">8923</div><div class="art4-ring"></div></div>`, analysis: "這件作品諷刺了當代學生過度追求量化成績與「即時滿足」的現象。畫面上不斷彈出的數字，象徵著算計與速成的成就感，你可以輕易透過點擊與滑動獲得分數；但代價是，代表內涵的文學詩篇會逐漸被亂碼吞噬。語文的學習沒有捷徑，它需要「延遲滿足」——唯有當你克制住追逐分數的衝動，在空白處耐心長按停留，拒絕干擾，文字真正的意義與美麗才會向你顯現。" },
         { id: 5, url: "art5.html", num: "NO. 05", title: "Absorb？Apply？", subtitle: "無用之用", previewHTML: `<div class="preview-art5"><div class="art5-aura"></div><div class="art5-laser"></div><div class="art5-laser"></div><div class="art5-laser"></div><div class="art5-core"></div></div>`, analysis: "這件互動裝置以浩瀚宇宙為隱喻，演繹了我們面對深層知識時兩種截然不同的態度。作品揭示了學習的真相：無用的知識往往才是滋養靈魂的深邃養分，而過度追求即時變現的學習，終將導致精神世界的貧瘠與荒蕪。" },
         { id: 6, url: "art6.html", num: "NO. 06", title: "軌跡與灰燼", subtitle: "急躁的代價與慢活的詩意", previewHTML: `<div class="preview-art6"><div class="art6-slow"></div><div class="art6-fast-container"><div class="art6-fast"></div></div></div>`, analysis: "這件互動裝置具象化了現代人急功近利的焦慮。當你急於求成、在畫布上快速拖曳時，留下的只有枯燥、脆弱且註定碎裂墜落的灰色線條；而當你願意慢下來，沉穩地感受當下的軌跡，畫面便會隨著時間流轉，綻放出絢麗的光彩與生命力。作品溫柔地提醒我們：唯有學會欣賞過程的緩慢，生活才會向我們展露它真實的美麗；急躁求來的結果，終究只是沒有根基、轉瞬即逝的灰燼。" },
         { id: 7, url: "art7.html", num: "NO. 07", title: "靈魂代幣", subtitle: "效率的代價與思維的石化", previewHTML: `<div class="preview-art7"><div class="art7-link"></div><div class="art7-link"></div><div class="art7-face"></div></div>`, analysis: "這件互動裝置是對人工智慧時代的警世寓言。當我們沈迷於 AI 帶來的高效與便捷，大腦中負責深度連結的神經元卻在悄然斷裂。作品中，當你追求運算速度時，畫面會爆發出耀眼的光芒，但這光芒轉瞬即逝，隨之而來的是死寂的灰色與凝固的線條。這象徵著思維外包後的終局——我們獲得了完美的答案，卻失去了提問的靈魂，最終化為資訊洪流中一座座無法思考的石像。" },
         { id: 8, url: "art8.html", num: "NO. 08", title: "點的狹隘", subtitle: "點、線、面與思維的維度", previewHTML: `<div class="preview-art8"><div class="art8-scene"><div class="art8-f"></div><div class="art8-p"></div><div class="art8-p"></div><div class="art8-p"></div><div class="art8-l" style="top:35%; left:45%; transform:rotate(60deg);"></div><div class="art8-l" style="top:55%; left:40%; transform:rotate(0deg);"></div><div class="art8-l" style="top:55%; left:60%; transform:rotate(-120deg);"></div></div></div>`, analysis: "這件互動裝置以極簡的幾何演變，諷刺了學生常將科目視為互不相干的孤島。在畫面左側，知識只是混沌、離散的點；當你主動介入，試圖尋找關聯，這些點才開始連成線，進而結成面，最終構建出完整的立體思維結構。唯有懂得觸類旁通，將不同學科的邏輯相互映射，我們才能突破平面的局限，看見知識全貌的立體之美。" },
- { 
-    id: 9, 
-    url: "art9.html", 
-    num: "NO. 09", 
-    title: "循規與破局", 
-    subtitle: "慣性思維的迷宮與主動出擊的智慧", 
-    previewHTML: `<div class="preview-art9"><div class="art9-maze"></div><div class="art9-p1"></div><div class="art9-p2"></div><div class="art9-burst"></div></div>`, 
-    analysis: "這件互動裝置直擊了學習過程中常見的「思維僵化」。畫面上雖然提供了方向鍵，誘使你操控藍球乖乖走完迷宮；但如果你只懂得循規蹈矩地按部就班，最終往往會耗盡精力，淪為流水線上不知變通的灰色方塊。\n\n真正的隱藏破局之法，在於無視那些預設的按鍵——請直接用滑鼠或手指按住代表目標的「紅球」，將它拖曳到藍球身邊。當你跳出既定規則，僵化的迷宮框架便會瞬間粉碎，化為衝破維度的絢麗星辰。很多時候困住你的並非難題本身，而是盲目順從的慣性；與其在別人畫好的迷宮裡死磕，不如靈活變通，主動把目標拉向自己。" 
-},
-{ 
-    id: 10, 
-    url: "art10.html", 
-    num: "NO. 10", 
-    title: "無效的用功", 
-    subtitle: "用功不是為了感動自己", 
-    previewHTML: `<div class="preview-art10"><div class="art10-core-p"></div><div class="art10-node-p"></div><div class="art10-line-p"></div></div>`, 
-    analysis: "這件互動裝置揭示了學習與工作中關於努力的真相。如果你試圖直接轉動輪子，你會發現阻力巨大，車輪會震動發紅，最終甚至會石化卡死——這象徵著盲目刷題與死記硬背的末路，越努力越絕望。唯有先將散落的知識節點與作為發亮的動力源接通，建立起完整的能量網絡，車輪才能在幾乎不費力的情況下自動運轉。作品提醒我們，運用聰明的方法做事遠比單純的蠻力更有效益。" 
-},
-{ 
-    id: 11, 
-    url: "art11.html", 
-    num: "NO. 11", 
-    title: "定靜的試煉", 
-    subtitle: "在躁動世界重拾閱讀本能", 
-    previewHTML: `<div class="preview-art11"><div class="art11-text-beam"></div><div class="art11-popup"></div><div class="art11-popup"></div></div>`, 
-    analysis: "這件作品是一場關於專注力的數位修行。畫面上引用了《大學》的經典篇章，但周圍不斷彈出的社群通知試圖將你的視線拉走。機制極其殘酷卻寫實：滑鼠的每一次游移都代表心智的動搖，導致文字模糊難辨；唯有保持滑鼠與身體的絕對靜止，拒絕所有數位誘惑，清晰的真理才會浮現。在這個被演算法與推播通知綁架的時代，我們是否還擁有閱讀一段完整文字的定力？" 
-},
-{ 
-    id: 12, 
-    url: "art12.html", 
-    num: "NO. 12", 
-    title: "控制的幻覺", 
-    subtitle: "努力的落點與命運的紅線", 
-    previewHTML: `
-        <div class="preview-art12">
-            <div class="art12-limit-line"></div>
-            <div class="art12-ball-drop"></div>
-            <div class="art12-ball-drop"></div>
-            <div class="art12-stack-bar"></div>
-            <div class="art12-stack-bar"></div>
-        </div>
-    `, 
-    analysis: "這件作品以釘板的機率遊戲，辯證了「努力」的真實價值。雖然落下的路徑充滿隨機變數，但你投入的蓄力越深，光球便越有機會落入高分的區間——這證明努力並非徒勞，它能提高成功的機率。作品試圖傳達的，還有一種在積極進取後的釋懷：我們能完全掌控的只有手中的力度與發射的瞬間，至於結果的些許偏差，則是不可控的，我們只能「盡人事，聽天命」——僅執著於可控的耕耘，並在不可控的落點面前，學會優雅地接受。" 
-}
+        { id: 9, url: "art9.html", num: "NO. 09", title: "循規與破局", subtitle: "慣性思維的迷宮與主動出擊的智慧", previewHTML: `<div class="preview-art9"><div class="art9-maze"></div><div class="art9-p1"></div><div class="art9-p2"></div><div class="art9-burst"></div></div>`, analysis: "這件互動裝置直擊了學習過程中常見的「思維僵化」。畫面上雖然提供了方向鍵，誘使你操控藍球乖乖走完迷宮；但如果你只懂得循規蹈矩地按部就班，最終往往會耗盡精力，淪為流水線上不知變通的灰色方塊。\n\n真正的隱藏破局之法，在於無視那些預設的按鍵——請直接用滑鼠或手指按住代表目標的「紅球」，將它拖曳到藍球身邊。當你跳出既定規則，僵化的迷宮框架便會瞬間粉碎，化為衝破維度的絢麗星辰。" },
+        { id: 10, url: "art10.html", num: "NO. 10", title: "無效的用功", subtitle: "用功不是為了感動自己", previewHTML: `<div class="preview-art10"><div class="art10-core-p"></div><div class="art10-node-p"></div><div class="art10-line-p"></div></div>`, analysis: "這件互動裝置揭示了學習與工作中關於努力的真相。如果你試圖直接轉動輪子，你會發現阻力巨大，車輪會震動發紅，最終甚至會石化卡死——這象徵著盲目刷題與死記硬背的末路。唯有先將散落的知識節點與作為發亮的動力源接通，建立起完整的能量網絡，車輪才能在幾乎不費力的情況下自動運轉。" },
+        { id: 11, url: "art11.html", num: "NO. 11", title: "定靜的試煉", subtitle: "在躁動世界重拾閱讀本能", previewHTML: `<div class="preview-art11"><div class="art11-text-beam"></div><div class="art11-popup"></div><div class="art11-popup"></div></div>`, analysis: "這件作品是一場關於專注力的數位修行。畫面上引用了《大學》的經典篇章，但周圍不斷彈出的社群通知試圖將你的視線拉走。機制極其殘酷卻寫實：滑鼠的每一次游移都代表心智的動搖，導致文字模糊難辨；唯有保持滑鼠與身體的絕對靜止，拒絕所有數位誘惑，清晰的真理才會浮現。" },
+        { id: 12, url: "art12.html", num: "NO. 12", title: "控制的幻覺", subtitle: "努力的落點與命運的紅線", previewHTML: `<div class="preview-art12"><div class="art12-limit-line"></div><div class="art12-ball-drop"></div><div class="art12-ball-drop"></div><div class="art12-stack-bar"></div><div class="art12-stack-bar"></div></div>`, analysis: "這件作品以釘板的機率遊戲，辯證了「努力」的真實價值。雖然落下的路徑充滿隨機變數，但你投入的蓄力越深，光球便越有機會落入高分的區間——這證明努力並非徒勞。作品試圖傳達的，還有一種在積極進取後的釋懷：我們能完全掌控的只有手中的力度，至於結果的些許偏差，我們只能學會優雅地接受。" }
     ];
 
-    // 分頁設定
-    const ITEMS_PER_SECTOR = 5;
+    const ITEMS_PER_SECTOR = 4;
     let currentSector = 0;
     const totalSectors = Math.ceil(exhibits.length / ITEMS_PER_SECTOR);
-
-    // DOM 元素
     const gallery = document.getElementById('gallery');
-    const navTrack = document.getElementById('nav-track');
-    const currentSectorDisplay = document.getElementById('current-sector-display');
-    const totalSectorDisplay = document.getElementById('total-sector-display');
-    const navDeck = document.querySelector('.nav-deck-container'); 
-    
-    // Viewer 元素
-    const viewer = document.getElementById('viewer');
-    const artFrame = document.getElementById('art-frame');
-    const analysisPanel = document.getElementById('analysis-panel');
-    const analysisTitle = document.getElementById('analysis-title');
-    const analysisText = document.getElementById('analysis-text');
 
-    // 初始化
     function init() {
-        totalSectorDisplay.innerText = totalSectors.toString().padStart(2, '0');
+        document.getElementById('total-sector-display').innerText = totalSectors.toString().padStart(2, '0');
         renderNavNodes();
-        renderSector(0);
+        renderSector(0, false);
+        initSmoothScroll();
     }
 
-    // 渲染導航節點
     function renderNavNodes() {
-        navTrack.innerHTML = '';
+        const track = document.getElementById('nav-track');
+        track.innerHTML = '';
         for (let i = 0; i < totalSectors; i++) {
             const node = document.createElement('div');
             node.className = 'nav-node';
             
+            if (window.innerWidth > 768) {
+                node.addEventListener('mousemove', (e) => {
+                    const rect = node.getBoundingClientRect();
+                    const x = e.clientX - rect.left - rect.width / 2;
+                    const y = e.clientY - rect.top - rect.height / 2;
+                    gsap.to(node, { x: x * 0.4, y: y * 0.4, duration: 0.3, ease: 'power2.out' });
+                });
+                node.addEventListener('mouseleave', () => {
+                    gsap.to(node, { x: 0, y: 0, duration: 0.5, ease: 'elastic.out(1, 0.3)' });
+                });
+            }
+
             node.addEventListener('click', () => {
-                renderSector(i);
+                if(i !== currentSector) renderSector(i, true);
             });
-            navTrack.appendChild(node);
+            track.appendChild(node);
         }
     }
 
-    // 渲染展廳內容
-    function renderSector(sectorIndex) {
+    function renderSector(sectorIndex, shouldScrollToTop) {
         currentSector = sectorIndex;
-        currentSectorDisplay.innerText = (sectorIndex + 1).toString().padStart(2, '0');
-
-        const nodes = document.querySelectorAll('.nav-node');
-        nodes.forEach((node, idx) => {
-            if (idx === sectorIndex) node.classList.add('active');
-            else node.classList.remove('active');
+        document.getElementById('current-sector-display').innerText = (sectorIndex + 1).toString().padStart(2, '0');
+        
+        document.querySelectorAll('.nav-node').forEach((node, idx) => {
+            node.classList.toggle('active', idx === sectorIndex);
         });
 
-        gallery.innerHTML = '';
-        const start = sectorIndex * ITEMS_PER_SECTOR;
-        const end = start + ITEMS_PER_SECTOR;
-        const sectorExhibits = exhibits.slice(start, end);
+        gsap.to('.exhibit-item', { opacity: 0, y: 30, duration: 0.3, stagger: 0.05, onComplete: () => {
+            gallery.innerHTML = '';
+            const sectorExhibits = exhibits.slice(sectorIndex * ITEMS_PER_SECTOR, (sectorIndex + 1) * ITEMS_PER_SECTOR);
 
-        sectorExhibits.forEach((ex, index) => {
-            const article = document.createElement('article');
-            article.className = 'exhibit-item';
-            article.style.animationDelay = `${index * 0.1}s`; 
-            
-            article.innerHTML = `
-                <div class="exhibit-info">
-                    <div class="exhibit-num">${ex.num}</div>
-                    <h2 class="exhibit-title">${ex.title}</h2>
-                    <div class="exhibit-desc">${ex.subtitle}</div>
-                </div>
-                <div class="preview-container">
-                    ${ex.previewHTML}
-                </div>
-            `;
-            
-            article.addEventListener('click', () => {
-                artFrame.src = ex.url;
-                analysisTitle.innerText = ex.title;
-                analysisText.innerText = ex.analysis;
-                viewer.classList.add('active');
-                analysisPanel.classList.remove('show');
-                
-                // 進入展品時，隱藏導航列
-                navDeck.classList.add('nav-hidden');
+            sectorExhibits.forEach((ex) => {
+                const article = document.createElement('article');
+                article.className = 'exhibit-item';
+                article.innerHTML = `
+                    <div class="exhibit-bg-num">${ex.num.split(' ')[1]}</div>
+                    <div class="exhibit-content-wrapper">
+                        <div class="exhibit-info">
+                            <div class="exhibit-num">${ex.num}</div>
+                            <h2 class="exhibit-title">${ex.title}</h2>
+                            <div class="exhibit-desc">${ex.subtitle}</div>
+                        </div>
+                        <div class="preview-container">
+                            ${ex.previewHTML}
+                        </div>
+                    </div>
+                `;
+                article.addEventListener('click', () => openViewer(ex));
+                gallery.appendChild(article);
             });
-            gallery.appendChild(article);
-        });
 
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+            if(shouldScrollToTop) {
+                const targetY = gallery.offsetTop - (window.innerWidth <= 768 ? 50 : 100);
+                gsap.to(window, { scrollTo: targetY, duration: 0.8, ease: 'power3.inOut' });
+            }
+
+            initGSAPAnimations();
+            if (window.innerWidth > 768) initDesktop3DTilt();
+        }});
     }
 
-    init();
+    function initSmoothScroll() {
+        const lenis = new Lenis({ duration: 1.2, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
+        function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
+        requestAnimationFrame(raf);
+    }
 
-    // 播放器關閉邏輯
+    function initGSAPAnimations() {
+        gsap.registerPlugin(ScrollTrigger);
+        ScrollTrigger.refresh(); 
+        
+        const isMobile = window.innerWidth <= 768;
+
+        gsap.utils.toArray('.exhibit-item').forEach(item => {
+            gsap.to(item, {
+                scrollTrigger: { trigger: item, start: "top 85%" },
+                opacity: 1, y: 0, duration: 1.2, ease: "power3.out"
+            });
+            
+            const bgNum = item.querySelector('.exhibit-bg-num');
+            gsap.to(bgNum, {
+                scrollTrigger: { trigger: item, start: "top bottom", end: "bottom top", scrub: 1 },
+                y: isMobile ? 50 : -150, ease: "none"
+            });
+
+            if (isMobile) {
+                const infoCard = item.querySelector('.exhibit-info');
+                gsap.fromTo(infoCard, 
+                    { y: 30 }, 
+                    { scrollTrigger: { trigger: item, start: "top bottom", end: "bottom top", scrub: 1 }, y: -20, ease: "none" }
+                );
+            }
+        });
+    }
+
+    function initDesktop3DTilt() {
+        document.querySelectorAll('.exhibit-item').forEach(item => {
+            const wrapper = item.querySelector('.exhibit-content-wrapper');
+            item.addEventListener('mousemove', (e) => {
+                const rect = item.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width - 0.5;
+                const y = (e.clientY - rect.top) / rect.height - 0.5;
+                gsap.to(wrapper, { rotateY: x * 10, rotateX: -y * 10, duration: 0.6, ease: 'power2.out' });
+            });
+            item.addEventListener('mouseleave', () => {
+                gsap.to(wrapper, { rotateY: 0, rotateX: 0, duration: 1, ease: 'elastic.out(1, 0.3)' });
+            });
+        });
+    }
+
+    // --- 播放器操作邏輯 ---
+    const viewer = document.getElementById('viewer');
+    const artFrame = document.getElementById('art-frame');
+    const analysisPanel = document.getElementById('analysis-panel');
+
+    function openViewer(exData) {
+        artFrame.src = exData.url;
+        document.getElementById('analysis-title').innerText = exData.title;
+        document.getElementById('analysis-text').innerText = exData.analysis;
+        
+        viewer.classList.add('active');
+        document.getElementById('nav-deck').classList.add('nav-hidden');
+        analysisPanel.classList.remove('show');
+    }
+
     document.getElementById('btn-close').addEventListener('click', () => {
         viewer.classList.remove('active');
         analysisPanel.classList.remove('show');
-        
-        // 離開展品時，顯示導航列
-        navDeck.classList.remove('nav-hidden');
-
-        setTimeout(() => { artFrame.src = ""; }, 600);
+        document.getElementById('nav-deck').classList.remove('nav-hidden');
+        setTimeout(() => { artFrame.src = ""; }, 800);
     });
 
     document.getElementById('btn-info').addEventListener('click', () => {
         analysisPanel.classList.toggle('show');
     });
+
+    window.onload = init;
 </script>
 </body>
 </html>
