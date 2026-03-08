@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>關係的狀態</title>
+<title>關係的狀態：獨立與同化</title>
 <style>
     body, html {
         margin: 0;
@@ -39,12 +39,13 @@
     resize();
 
     // 狀態定義
-    const STATE_SEARCHING = 0;
-    const STATE_CLASH = 1;
-    const STATE_PARALLEL = 2;
-    let currentState = STATE_SEARCHING;
-    let previousState = STATE_SEARCHING; // 用於追蹤狀態切換
+    const STATE_INDEPENDENT = 0; // 改名為 INDEPENDENT，不再是 SEARCHING (尋找互補)
+    const STATE_CLASH = 1; // 靠太近時的同化與排斥衝突
+    const STATE_PARALLEL = 2; // 適度距離：並肩同行
+    let currentState = STATE_INDEPENDENT;
+    let previousState = STATE_INDEPENDENT;
     let stateProgress = 0; 
+    let lostEntity = 0; // 紀錄誰失去了自己變成對方的形狀 (1 或 2)
 
     // 震動控制變數
     let lastVibrateTime = 0;
@@ -53,10 +54,13 @@
     const r = Math.min(width, height) * 0.08;
     const gapAngle = Math.PI / 2.5;
     
-    let p1 = { x: width * 0.3, y: height * 0.5, r: r, angle: 0, targetAngle: 0, isDragging: false };
-    let p2 = { x: width * 0.7, y: height * 0.5, r: r, angle: Math.PI, targetAngle: Math.PI, isDragging: false };
+    // 形狀參數：0 代表圓形，1 代表正方形
+    let p1 = { x: width * 0.3, y: height * 0.5, r: r, angle: 0, targetAngle: 0, 
+               baseShape: 0, currentShape: 0, isDragging: false };
+    let p2 = { x: width * 0.7, y: height * 0.5, r: r, angle: Math.PI, targetAngle: Math.PI, 
+               baseShape: 1, currentShape: 1, isDragging: false };
 
-    // 粒子系統 (落寞的人間)
+    // 粒子系統 
     const particles =[];
     const numParticles = 150;
     for(let i=0; i<numParticles; i++) {
@@ -71,17 +75,10 @@
     }
 
     // 互動控制
-    let pointerX = 0, pointerY = 0;
     let activeP = null;
 
-    function getDistance(x1, y1, x2, y2) {
-        return Math.hypot(x2 - x1, y2 - y1);
-    }
-
-    function lerp(a, b, n) {
-        return (1 - n) * a + n * b;
-    }
-
+    function getDistance(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
+    function lerp(a, b, n) { return (1 - n) * a + n * b; }
     function lerpAngle(a, b, n) {
         let diff = b - a;
         while (diff < -Math.PI) diff += Math.PI * 2;
@@ -89,33 +86,32 @@
         return a + diff * n;
     }
 
+    // 計算形狀的半徑 (用於在圓形與正方形之間平滑過渡)
+    function getShapeRadius(angle, shapeProgress, baseR) {
+        let rCircle = baseR;
+        let sides = 4;
+        let segment = Math.PI * 2 / sides;
+        let offset = Math.PI / 4; 
+        let shiftedA = (angle + offset) % segment;
+        if (shiftedA < 0) shiftedA += segment;
+        let rSquare = (baseR * 0.85) / Math.cos(shiftedA - segment / 2);
+        
+        return lerp(rCircle, rSquare, shapeProgress);
+    }
+
     function onPointerDown(e) {
         let x = e.clientX || (e.touches && e.touches[0].clientX);
         let y = e.clientY || (e.touches && e.touches[0].clientY);
-        
-        if (getDistance(x, y, p1.x, p1.y) < p1.r * 1.5) {
-            p1.isDragging = true;
-            activeP = p1;
-        } else if (getDistance(x, y, p2.x, p2.y) < p2.r * 1.5) {
-            p2.isDragging = true;
-            activeP = p2;
-        }
+        if (getDistance(x, y, p1.x, p1.y) < p1.r * 1.5) { p1.isDragging = true; activeP = p1; } 
+        else if (getDistance(x, y, p2.x, p2.y) < p2.r * 1.5) { p2.isDragging = true; activeP = p2; }
     }
-
     function onPointerMove(e) {
         if (!activeP) return;
         let x = e.clientX || (e.touches && e.touches[0].clientX);
         let y = e.clientY || (e.touches && e.touches[0].clientY);
-        activeP.x = x;
-        activeP.y = y;
+        activeP.x = x; activeP.y = y;
     }
-
-    function onPointerUp() {
-        if(activeP) {
-            activeP.isDragging = false;
-            activeP = null;
-        }
-    }
+    function onPointerUp() { if(activeP) { activeP.isDragging = false; activeP = null; } }
 
     window.addEventListener('mousedown', onPointerDown);
     window.addEventListener('mousemove', onPointerMove);
@@ -144,6 +140,7 @@
             ctx.globalAlpha = intensity;
             ctx.fill();
         } else if (state === STATE_CLASH) {
+            // 排斥與恐慌的紅色射線
             ctx.strokeStyle = 'rgba(255, 50, 50, 0.5)';
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -170,6 +167,7 @@
         let color = '#aaccff';
         let glow = 20;
 
+        // 紅色的衝突與閃爍
         if (state === STATE_CLASH) {
             jitterX = (Math.random() - 0.5) * 15;
             jitterY = (Math.random() - 0.5) * 15;
@@ -190,15 +188,30 @@
         ctx.lineWidth = 6;
         ctx.lineCap = 'round';
 
+        // 繪製動態過渡的幾何形狀
         ctx.beginPath();
-        ctx.arc(0, 0, p.r, gapAngle / 2, Math.PI * 2 - gapAngle / 2);
+        for (let a = gapAngle / 2; a <= Math.PI * 2 - gapAngle / 2; a += 0.05) {
+            let currentR = getShapeRadius(a, p.currentShape, p.r);
+            let px = currentR * Math.cos(a);
+            let py = currentR * Math.sin(a);
+            
+            if (a === gapAngle / 2 || a - 0.05 < gapAngle / 2) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
         ctx.stroke();
 
+        // 衝突時的白色錯位雜訊
         if (isGlitched && Math.random() > 0.8) {
             ctx.strokeStyle = '#fff';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc((Math.random()-0.5)*10, (Math.random()-0.5)*10, p.r, 0, Math.PI * 2);
+            for (let a = 0; a <= Math.PI * 2; a += 0.1) {
+                let currentR = getShapeRadius(a, p.currentShape, p.r);
+                let px = (Math.random()-0.5)*15 + currentR * Math.cos(a);
+                let py = (Math.random()-0.5)*15 + currentR * Math.sin(a);
+                if (a === 0 || a - 0.1 < 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
             ctx.stroke();
         }
 
@@ -217,18 +230,17 @@
             currentState = STATE_PARALLEL;
             stateProgress = lerp(stateProgress, 1, 0.03);
         } else {
-            currentState = STATE_SEARCHING;
+            currentState = STATE_INDEPENDENT;
             stateProgress = lerp(stateProgress, 0, 0.05);
         }
 
-        // 觸覺回饋 (震動) - 當狀態為勉強相合(碰撞)時
+        // 震動回饋 (強烈衝突)
         if (currentState === STATE_CLASH) {
             if (previousState !== STATE_CLASH) {
-                // 剛進入碰撞狀態：輕微雙重震動 (短暫有感)
+                lostEntity = Math.random() < 0.5 ? 1 : 2; // 決定誰失去自己
                 if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
                 lastVibrateTime = Date.now();
             } else {
-                // 持續在碰撞狀態：限制震動頻率，每300毫秒給予一次極短暫的微弱震動，避免麻木
                 if (Date.now() - lastVibrateTime > 300) {
                     if (navigator.vibrate) navigator.vibrate(15);
                     lastVibrateTime = Date.now();
@@ -238,29 +250,54 @@
         previousState = currentState;
 
         // 狀態對應的物理與行為
-        if (currentState === STATE_SEARCHING) {
-            // 互相尋找對方的缺口 (誘使用戶試圖拼合)
-            p1.targetAngle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
-            p2.targetAngle = Math.atan2(p1.y - p2.y, p1.x - p2.x);
-        } else if (currentState === STATE_CLASH) {
-            // 排斥與混亂
-            p1.targetAngle += (Math.random() - 0.5) * 0.5;
-            p2.targetAngle += (Math.random() - 0.5) * 0.5;
+        if (currentState === STATE_INDEPENDENT) {
+            // [關鍵修改]：不再把缺口對準彼此！
+            // 各自像燈塔一樣，保有自己的節奏緩慢自轉，向外探索世界。這強調了個體的「完整性」。
+            p1.targetAngle += 0.005;
+            p2.targetAngle -= 0.005;
             
-            // 彈開力量
+            // 避免角度無限疊加
+            if (p1.targetAngle > Math.PI * 2) p1.targetAngle -= Math.PI * 2;
+            if (p2.targetAngle < -Math.PI * 2) p2.targetAngle += Math.PI * 2;
+            
+            // 恢復各自原本的形狀 (圓形與正方形)
+            p1.currentShape = lerp(p1.currentShape, p1.baseShape, 0.05);
+            p2.currentShape = lerp(p2.currentShape, p2.baseShape, 0.05);
+
+        } else if (currentState === STATE_CLASH) {
+            let dominantP = (lostEntity === 1) ? p2 : p1;
+            let lostP = (lostEntity === 1) ? p1 : p2;
+
+            // 失去自我者：逐漸變成對方的形狀，且角度被強制同化
+            lostP.currentShape = lerp(lostP.currentShape, dominantP.baseShape, 0.1);
+            lostP.targetAngle = dominantP.angle;
+            
+            // 主導者：看到對方變成自己，恐慌而陷入混亂轉動
+            dominantP.targetAngle += (Math.random() - 0.5) * 0.8; 
+
+            // 愛得太近的衝突拉扯
             if (!p1.isDragging && !p2.isDragging) {
-                let repelAngle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
-                p1.x -= Math.cos(repelAngle) * 2;
-                p1.y -= Math.sin(repelAngle) * 2;
-                p2.x += Math.cos(repelAngle) * 2;
-                p2.y += Math.sin(repelAngle) * 2;
+                let angleBetween = Math.atan2(dominantP.y - lostP.y, dominantP.x - lostP.x);
+                
+                // 失去自我者盲目想貼上對方
+                lostP.x += Math.cos(angleBetween) * 1.5;
+                lostP.y += Math.sin(angleBetween) * 1.5;
+                
+                // 主導者排斥「失去自我的影子」，拼命將對方推開
+                dominantP.x += Math.cos(angleBetween) * 3;
+                dominantP.y += Math.sin(angleBetween) * 3;
             }
+
         } else if (currentState === STATE_PARALLEL) {
-            // 共同看向上方
+            // [適度靠近時]：共同看向上方，光束平行不交會！
+            // 代表兩人並肩同行，而非互相填補缺口。
             p1.targetAngle = -Math.PI / 2;
             p2.targetAngle = -Math.PI / 2;
 
-            // 輕微的並肩引力 (但不強制黏合)
+            // 恢復各自原本的形狀
+            p1.currentShape = lerp(p1.currentShape, p1.baseShape, 0.05);
+            p2.currentShape = lerp(p2.currentShape, p2.baseShape, 0.05);
+
             if (!p1.isDragging && !p2.isDragging) {
                 let midY = (p1.y + p2.y) / 2;
                 p1.y = lerp(p1.y, midY, 0.02);
@@ -268,10 +305,16 @@
             }
         }
 
-        p1.angle = lerpAngle(p1.angle, p1.targetAngle, 0.08);
-        p2.angle = lerpAngle(p2.angle, p2.targetAngle, 0.08);
+        // 獨立狀態使用比較直接的角度賦值讓旋轉平滑，其餘狀態保留彈性過渡
+        if (currentState === STATE_INDEPENDENT) {
+            p1.angle = p1.targetAngle;
+            p2.angle = p2.targetAngle;
+        } else {
+            p1.angle = lerpAngle(p1.angle, p1.targetAngle, 0.08);
+            p2.angle = lerpAngle(p2.angle, p2.targetAngle, 0.08);
+        }
 
-        // 繪製背景與粒子
+        // 繪製背景與粒子 (紅色混亂)
         ctx.globalCompositeOperation = 'source-over';
         ctx.fillStyle = `rgba(5, 5, 7, ${currentState === STATE_CLASH ? 0.3 : 0.2})`;
         ctx.fillRect(0, 0, width, height);
@@ -280,17 +323,14 @@
         
         particles.forEach(pt => {
             if (currentState === STATE_PARALLEL) {
-                // 星辰升起
                 pt.vy = lerp(pt.vy, -1.5 - Math.random(), 0.02);
                 pt.vx = lerp(pt.vx, 0, 0.02);
                 ctx.fillStyle = `rgba(255, 220, 150, ${pt.baseAlpha * stateProgress * 2})`;
             } else if (currentState === STATE_CLASH) {
-                // 混亂亂竄
                 pt.vy += (Math.random() - 0.5) * 2;
                 pt.vx += (Math.random() - 0.5) * 2;
                 ctx.fillStyle = `rgba(255, 100, 100, ${pt.baseAlpha})`;
             } else {
-                // 落寞的灰燼
                 pt.vy = lerp(pt.vy, Math.random() * 0.5 + 0.2, 0.05);
                 pt.vx = lerp(pt.vx, (Math.random() - 0.5) * 0.5, 0.05);
                 ctx.fillStyle = `rgba(150, 180, 220, ${pt.baseAlpha})`;
@@ -309,7 +349,6 @@
             ctx.fill();
         });
 
-        // 繪製光束與實體
         drawBeam(p1, `rgba(255, 200, 120, ${stateProgress * 0.4})`, stateProgress, currentState);
         drawBeam(p2, `rgba(255, 200, 120, ${stateProgress * 0.4})`, stateProgress, currentState);
         
