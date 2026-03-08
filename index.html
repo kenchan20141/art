@@ -538,12 +538,19 @@
         background-position: top;
     }
 
+   /* 原本的段落設定保持不變 */
     .special-paper-content p {
         margin: 0;
         padding-bottom: 48px; 
-        /* 【關鍵修改】動態適應寬度，保證單行排完並最大化文字 */
         font-size: min(16px, 3.6vw); 
-        white-space: nowrap; /* 強制不發生自動折行，只在 <br> 處斷行 */
+        white-space: nowrap; 
+    }
+
+    /* 👇 新增這段：專門讓第一句話（停駐於此的你：）靠左對齊 */
+    .special-paper-content p:first-child {
+        text-align: left;
+        /* 如果您覺得太貼齊邊緣，可以加一點左側內距讓它更好看 */
+        padding-left: 2%; 
     }
 
     .special-paper-content p:last-child {
