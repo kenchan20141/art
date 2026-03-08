@@ -55,6 +55,7 @@
 
     let w, h;
     let time = 0;
+    let vibrationInterval = null;
 
     // 核心狀態
     let soul = 1.0;          
@@ -123,16 +124,30 @@
     window.addEventListener('resize', init);
 
     // ================= 互動控制 =================
-    function triggerAI() {
-        if (isDead) return;
-        isAIActive = true; 
-        hint.style.opacity = '0';
-    }
+   function triggerAI() {
+    if (isDead) return;
+    isAIActive = true; 
+    hint.style.opacity = '0';
 
-    function stopAI() { 
-        isAIActive = false; 
-        if(!isDead) hint.style.opacity = '1';
+    // 觸發震動：單次點擊震動 35ms；長按則透過 setInterval 循環震動
+    if (navigator.vibrate) {
+        navigator.vibrate(35); 
+        vibrationInterval = setInterval(() => {
+            navigator.vibrate(35);
+        }, 50); // 每 50ms 觸發一次 35ms 震動，營造連續回饋感
     }
+}
+
+   function stopAI() { 
+    isAIActive = false; 
+    if(!isDead) hint.style.opacity = '1';
+
+    // 鬆開時停止震動
+    if (navigator.vibrate) {
+        clearInterval(vibrationInterval);
+        navigator.vibrate(0);
+    }
+}
 
     window.addEventListener('mousedown', triggerAI);
     window.addEventListener('touchstart', (e) => { e.preventDefault(); triggerAI(); }, {passive: false});
@@ -297,12 +312,18 @@
     init();
 
     function animate() {
-        if (isAIActive && !isDead) {
+       if (isAIActive && !isDead) {
             soul -= 0.0025; 
             if (soul <= 0) {
                 soul = 0;
                 isDead = true; 
                 isAIActive = false;
+                
+                // AI 死亡（石化）時強制切斷震動
+                if (navigator.vibrate) {
+                    clearInterval(vibrationInterval);
+                    navigator.vibrate(0);
+                }
             }
         }
 
