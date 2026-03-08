@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Possession vs Companionship</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #050508;
+            overflow: hidden;
+            touch-action: none; 
+            font-family: sans-serif;
+            
+            -webkit-tap-highlight-color: transparent; 
+            -webkit-touch-callout: none;              
+            -webkit-user-select: none;                
+            user-select: none;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            outline: none; 
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="artCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('artCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let width, height, grabRadius, resonanceRadius;
+    let catwalks =[];
+    let friends =[];
+    let flowParticles =[];
+    let darkParticles =[];
+    let lightParticles =[];
+    let scars =[]; 
+
+    let alienation = 0; 
+    let mode = 0; 
+    let modeTransition = 0; 
+
+    const mouse = { x: -1000, y: -1000, active: false, isDown: false };
+    let userMoving = false; 
+    
+    const player = { x: -1000, y: -1000, targetX: -1000, targetY: -1000, size: 15, baseSize: 15, mass: 1, resonanceCooldown: 0 };
+
+    const toggleUI = { x: 0, y: 45, w: 120, h: 40 };
+
+    function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        grabRadius = Math.min(width, height) * 0.25; 
+        resonanceRadius = grabRadius * 1.2; 
+        
+        toggleUI.x = width / 2;
+
+        catwalks =[];
+        const numWalks = Math.max(3, Math.floor(width / 120));
+        const spacing = width / numWalks;
+        for (let i = 0; i < numWalks; i++) {
+            catwalks.push((i + 0.5) * spacing);
+        }
+        
+        if (!mouse.active) {
+            player.x = width / 2;
+            player.y = height / 2;
+        }
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+
+    window.addEventListener('pointerdown', (e) => {
+        const dx = e.clientX - toggleUI.x;
+        const dy = e.clientY - toggleUI.y;
+        
+        if (Math.abs(dx) < toggleUI.w / 2 + 20 && Math.abs(dy) < toggleUI.h / 2 + 20) {
+            mode = mode === 0 ? 1 : 0; 
+            
+            if (mode === 1) {
+                friends.forEach(f => {
+                    if (f.state === 'tethered') {
+                        f.state = 'healing';
+                        f.flash = 1;
+                    }
+                });
+            }
+            return; 
+        }
+
+        mouse.active = true;
+        mouse.isDown = true;
+        userMoving = true;
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+    });
+
+    window.addEventListener('pointermove', (e) => {
+        const dx = e.clientX - toggleUI.x;
+        const dy = e.clientY - toggleUI.y;
+        if (Math.abs(dx) < toggleUI.w / 2 + 20 && Math.abs(dy) < toggleUI.h / 2 + 20) return;
+
+        mouse.active = true;
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+        userMoving = true; 
+    });
+
+    window.addEventListener('pointerup', () => {
+        mouse.isDown = false;
+    });
+    
+    window.addEventListener('pointercancel', () => {
+        mouse.isDown = false;
+    });
+
+    class Friend {
+        constructor() {
+            this.pathIndex = Math.floor(Math.random() * catwalks.length);
+            this.x = catwalks[this.pathIndex];
+            this.y = height + 50;
+            
+            this.speedRandom = Math.random(); 
+            this.speed = mode === 0 ? 1.5 + this.speedRandom * 2.5 : 0.6 + this.speedRandom * 0.8;
+            
+            this.hue = Math.random() * 360;
+            this.radius = 7 + Math.random() * 4;
+            this.state = 'free'; 
+            this.life = 100;
+            this.tetherStrength = 0;
+            this.history =[];
+            this.flash = 0;
+            this.dead = false;
+            this.escapeDirection = 0;
+            this.resonanceLevel = 0; 
+            
+            this.destinationY = height * 0.15 + Math.random() * (height * 0.25);
+        }
+
+        update() {
+            const targetSpeed = mode === 0 ? 1.5 + this.speedRandom * 2.5 : 0.6 + this.speedRandom * 0.8;
+            this.speed += (targetSpeed - this.speed) * 0.05;
+
+            if (this.state !== 'departing') {
+                this.history.push({x: this.x, y: this.y});
+                if (this.history.length > 25) this.history.shift(); 
+            }
+
+            const dx = player.x - this.x;
+            const dy = player.y - this.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const fearRadius = grabRadius + alienation * 25;
+
+            if (mode === 1 && (this.state === 'free' || this.state === 'healing' || this.state === 'resonating') && this.y <= this.destinationY) {
+                if (this.state === 'resonating') {
+                    player.resonanceCooldown = 150; 
+                }
+                this.state = 'departing';
+                this.flash = 1;
+                for(let i=0; i<10; i++) {
+                    lightParticles.push({
+                        x: this.x, y: this.y,
+                        vx: (Math.random()-0.5)*2.5, vy: (Math.random()-0.5)*2.5,
+                        life: 1, hue: this.hue
+                    });
+                }
+            }
+
+            if (this.state === 'departing') {
+                this.life -= 0.8; 
+                this.radius += 0.08; 
+                this.y -= this.speed * 0.1; 
+                this.x += Math.sin(this.life * 0.1) * 0.5; 
+                if (this.life <= 0) this.dead = true;
+                return;
+            }
+
+            if (this.y < -50) this.dead = true;
+
+            if (mode === 0) {
+                if (this.state === 'free' || this.state === 'resonating' || this.state === 'healing') {
+                    if (alienation > 3 && dist < fearRadius) {
+                        this.state = 'escaping';
+                        this.escapeDirection = dx > 0 ? -1 : 1; 
+                        this.flash = 1;
+                    } else if (dist < grabRadius) {
+                        this.state = 'tethered';
+                        this.flash = 1;
+                    } else {
+                        this.x += (catwalks[this.pathIndex] - this.x) * 0.1;
+                        this.y -= this.speed; 
+                    }
+                    this.resonanceLevel = Math.max(0, this.resonanceLevel - 0.05);
+                } 
+                else if (this.state === 'escaping') {
+                    this.x += this.escapeDirection * this.speed * 2.5;
+                    this.y -= this.speed * 1.5;
+                    this.life = Math.max(30, this.life - 2);
+                    this.radius = Math.max(2, this.radius - 0.05);
+                    if (this.x < -50 || this.x > width + 50 || this.y < -50) this.dead = true;
+                }
+                else if (this.state === 'tethered') {
+                    this.tetherStrength = Math.min(1, this.tetherStrength + 0.05);
+                    this.x += dx * 0.04 * this.tetherStrength;
+                    this.y += dy * 0.04 * this.tetherStrength;
+                    this.life -= 0.8;
+                    if (dist < player.size + this.radius || this.life <= 0) {
+                        this.state = 'dying';
+                    }
+                } 
+                else if (this.state === 'dying') {
+                    this.radius *= 0.85;
+                    this.x += (player.x - this.x) * 0.15;
+                    this.y += (player.y - this.y) * 0.15;
+                    if (this.radius < 0.5) {
+                        this.dead = true;
+                        alienation = Math.min(10, alienation + 1); 
+                        scars.push({x: player.x, y: player.y, alpha: 0.6});
+                        for(let i=0; i<6; i++){
+                            darkParticles.push({
+                                x: player.x, y: player.y,
+                                vx: (Math.random()-0.5)*3, vy: (Math.random()-0.5)*3,
+                                life: 1, size: Math.random()*3 + 1
+                            });
+                        }
+                    }
+                }
+            } 
+            else {
+                if (this.state === 'tethered' || this.state === 'dying') {
+                    this.state = 'healing'; 
+                }
+
+                if (this.state === 'free' || this.state === 'healing' || this.state === 'resonating') {
+                    const targetX = catwalks[this.pathIndex];
+                    this.x += (targetX - this.x) * 0.05;
+                    this.y -= this.speed;
+
+                    if (this.life < 100) this.life += 0.5;
+                    if (this.radius < 10) this.radius += 0.05;
+
+                    // 【修改點】：如果是已經在連線的朋友，只要距離夠就不受冷卻影響；如果是新朋友，才需要冷卻結束
+                    let canResonate = false;
+                    if (this.state === 'resonating') {
+                        canResonate = (dist < resonanceRadius); // 已連線，只需判斷距離
+                    } else {
+                        canResonate = (dist < resonanceRadius && player.resonanceCooldown <= 0); // 新連線，需判斷距離與冷卻
+                    }
+
+                    if (canResonate) {
+                        this.state = 'resonating';
+                        this.resonanceLevel = Math.min(1, this.resonanceLevel + 0.02);
+                        if (alienation > 0) alienation = Math.max(0, alienation - 0.005);
+                        
+                        if (Math.random() < 0.05) {
+                            lightParticles.push({
+                                x: this.x, y: this.y,
+                                vx: (Math.random()-0.5)*1.5, vy: -Math.random()*1.5,
+                                life: 1, hue: this.hue
+                            });
+                        }
+                    } else {
+                        this.state = 'free';
+                        this.resonanceLevel = Math.max(0, this.resonanceLevel - 0.02);
+                    }
+                } else if (this.state === 'escaping') {
+                    this.x += this.escapeDirection * this.speed * 2.5;
+                    this.y -= this.speed * 1.5;
+                    if (this.x < -50 || this.x > width + 50 || this.y < -50) this.dead = true;
+                }
+            }
+        }
+
+        draw() {
+            if (modeTransition > 0.1 && (this.state === 'free' || this.state === 'resonating' || this.state === 'healing')) {
+                const distToDest = Math.max(0, this.y - this.destinationY);
+                const stationOpacity = Math.max(0, 1 - distToDest / 200) * modeTransition; 
+                if (stationOpacity > 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(catwalks[this.pathIndex] - 25, this.destinationY);
+                    ctx.lineTo(catwalks[this.pathIndex] + 25, this.destinationY);
+                    ctx.strokeStyle = `hsla(${this.hue}, 80%, 80%, ${stationOpacity * 0.9})`;
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([5, 5]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+
+            if (this.history.length > 1 && this.state !== 'departing') {
+                ctx.beginPath();
+                ctx.moveTo(this.history[0].x, this.history[0].y);
+                for (let i = 1; i < this.history.length; i++) {
+                    ctx.lineTo(this.history[i].x, this.history[i].y);
+                }
+                
+                if (this.state === 'escaping') {
+                    ctx.strokeStyle = `rgba(150, 150, 160, ${this.life/100})`;
+                    ctx.setLineDash([5, 5]); 
+                } else if (this.state === 'tethered' || this.state === 'dying') {
+                    ctx.strokeStyle = `rgba(100, 100, 100, ${(this.life/100)*0.5})`;
+                } else {
+                    const bright = 60 + this.resonanceLevel * 40;
+                    ctx.strokeStyle = `hsla(${this.hue}, 80%, ${bright}%, ${0.5 + this.resonanceLevel*0.5})`;
+                }
+                
+                ctx.lineWidth = this.radius * 0.8;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+                ctx.setLineDash([]); 
+            }
+
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, Math.max(0, this.radius), 0, Math.PI * 2);
+            
+            if (this.state === 'escaping') {
+                ctx.fillStyle = `hsl(${this.hue}, 20%, 60%)`; 
+                ctx.shadowBlur = 0;
+            } else if (this.state === 'tethered' || this.state === 'dying') {
+                const saturation = Math.max(0, (this.life / 100) * 80);
+                ctx.fillStyle = `hsl(${this.hue}, ${saturation}%, ${30 + saturation*0.3}%)`;
+                ctx.shadowBlur = 0;
+            } else if (this.state === 'departing') {
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.life / 100})`;
+                ctx.shadowColor = `hsl(${this.hue}, 100%, 80%)`;
+                ctx.shadowBlur = 25;
+            } else {
+                const bright = 70 + this.resonanceLevel * 30; 
+                ctx.fillStyle = `hsl(${this.hue}, 80%, ${bright}%)`;
+                ctx.shadowColor = `hsl(${this.hue}, 100%, 70%)`;
+                ctx.shadowBlur = 15 + this.resonanceLevel * 20;
+            }
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            if (this.flash > 0) {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius + this.flash * 20, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.flash * 0.8})`;
+                ctx.fill();
+                this.flash -= 0.05;
+            }
+        }
+    }
+
+    class FlowParticle {
+        constructor() {
+            this.pathIndex = Math.floor(Math.random() * catwalks.length);
+            this.x = catwalks[this.pathIndex] + (Math.random() - 0.5) * 15;
+            this.y = height + 10;
+            this.speedRandom = Math.random();
+            this.speed = mode === 0 ? 3 + this.speedRandom * 4 : 1.5 + this.speedRandom * 2;
+            this.length = 15 + Math.random() * 20;
+            this.alpha = Math.random() * 0.15;
+        }
+        update() { 
+            const targetSpeed = mode === 0 ? 3 + this.speedRandom * 4 : 1.5 + this.speedRandom * 2;
+            this.speed += (targetSpeed - this.speed) * 0.1;
+            this.y -= this.speed; 
+        }
+        draw(opacity) {
+            ctx.strokeStyle = `rgba(255, 255, 255, ${this.alpha * opacity})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y);
+            ctx.lineTo(this.x, this.y + this.length);
+            ctx.stroke();
+        }
+    }
+
+    function drawToggleUI() {
+        const { x, y, w, h } = toggleUI;
+        const r = h / 2;
+        
+        ctx.beginPath();
+        ctx.arc(x - w/2 + r, y, r, Math.PI/2, Math.PI*1.5);
+        ctx.lineTo(x + w/2 - r, y - r);
+        ctx.arc(x + w/2 - r, y, r, -Math.PI/2, Math.PI/2);
+        ctx.closePath();
+        ctx.fillStyle = `rgba(30, 30, 40, 0.8)`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(255, 255, 255, 0.2)`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(x - w/4, y, 6, 0, Math.PI*2);
+        ctx.fillStyle = '#000'; ctx.fill();
+        ctx.strokeStyle = '#d61a1a'; ctx.lineWidth = 2; ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(x + w/4 - 4, y, 4, 0, Math.PI*2);
+        ctx.fillStyle = '#fff'; ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x + w/4 + 4, y, 4, 0, Math.PI*2);
+        ctx.fillStyle = '#fff'; ctx.fill();
+
+        const targetThumbX = mode === 0 ? x - w/4 : x + w/4;
+        if (!this.thumbX) this.thumbX = targetThumbX;
+        this.thumbX += (targetThumbX - this.thumbX) * 0.2;
+
+        ctx.beginPath();
+        ctx.arc(this.thumbX, y, r - 4, 0, Math.PI*2);
+        
+        if (mode === 0) {
+            ctx.fillStyle = '#111';
+            ctx.shadowColor = '#d61a1a';
+            ctx.shadowBlur = 10;
+        } else {
+            ctx.fillStyle = '#fff';
+            ctx.shadowColor = '#fff';
+            ctx.shadowBlur = 15;
+        }
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+
+    let time = 0;
+
+    function animate() {
+        requestAnimationFrame(animate);
+        time += 0.01;
+
+        if (player.resonanceCooldown > 0) {
+            player.resonanceCooldown--;
+        }
+
+        modeTransition += (mode - modeTransition) * 0.1;
+
+        const darkLevel = Math.min(1, alienation * 0.1) * (1 - modeTransition);
+        const rBg = 10 + modeTransition * 15 - darkLevel * 10;
+        const gBg = 10 + modeTransition * 20 - darkLevel * 10;
+        const bBg = 15 + modeTransition * 30 - darkLevel * 15;
+        ctx.fillStyle = `rgba(${rBg}, ${gBg}, ${bBg}, 1)`;
+        ctx.fillRect(0, 0, width, height);
+
+        scars.forEach((s, i) => {
+            s.alpha -= 0.0005 * (1 + modeTransition * 5); 
+            if (s.alpha > 0) {
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, 8, 0, Math.PI*2);
+                ctx.fillStyle = `rgba(50, 10, 10, ${s.alpha * 0.3})`;
+                ctx.fill();
+            } else {
+                scars.splice(i, 1);
+            }
+        });
+
+        const catwalkOpacity = Math.max(0.1, 1 - alienation * 0.08 + modeTransition * 0.5);
+
+        catwalks.forEach(cx => {
+            const grad = ctx.createLinearGradient(cx - 25, 0, cx + 25, 0);
+            grad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+            grad.addColorStop(0.5, `rgba(255, 255, 255, ${0.03 * catwalkOpacity})`);
+            grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(cx - 25, 0, 50, height);
+
+            ctx.strokeStyle = `rgba(255, 255, 255, ${0.08 * catwalkOpacity})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(cx, height);
+            ctx.lineTo(cx, 0);
+            ctx.stroke();
+        });
+
+        const maxFriendsOnScreen = Math.floor(30 * (1 - modeTransition) + 4 * modeTransition);
+        const spawnRate = Math.max(0, (0.04 - alienation * 0.003) * (1 - modeTransition) + 0.005 * modeTransition);
+        
+        if (friends.length < maxFriendsOnScreen && Math.random() < spawnRate) {
+            friends.push(new Friend());
+        }
+
+        const flowRate = 0.2 * (1 - modeTransition) + 0.02 * modeTransition;
+        if (Math.random() < flowRate) flowParticles.push(new FlowParticle());
+
+        flowParticles.forEach(p => { p.update(); p.draw(catwalkOpacity); });
+
+        let tetheredCount = friends.filter(f => f.state === 'tethered' || f.state === 'dying').length;
+        
+        const targetMass = mode === 0 ? 1 + tetheredCount * 1.5 + alienation * 1.5 : 1;
+        player.mass += (targetMass - player.mass) * 0.1;
+
+        if (userMoving) {
+            let distToTarget = Math.sqrt(Math.pow(player.x - mouse.x, 2) + Math.pow(player.y - mouse.y, 2));
+            if (!mouse.isDown && distToTarget < 20) {
+                userMoving = false;
+            }
+        }
+
+        let resonatingFriend = (mode === 1) ? friends.find(f => f.state === 'resonating') : null;
+
+        if (!mouse.active) {
+            if (resonatingFriend) {
+                const sideOffset = player.x < resonatingFriend.x ? -45 : 45;
+                player.targetX = resonatingFriend.x + sideOffset;
+                player.targetY = resonatingFriend.y;
+            } else {
+                player.targetX = width / 2 + Math.sin(time) * (width * 0.2);
+                player.targetY = height / 2 + Math.cos(time * 0.7) * (height * 0.2);
+            }
+        } else {
+            if (userMoving || mouse.isDown) {
+                player.targetX = mouse.x;
+                player.targetY = mouse.y;
+            } 
+            else if (resonatingFriend) {
+                const sideOffset = player.x < resonatingFriend.x ? -45 : 45;
+                player.targetX = resonatingFriend.x + sideOffset;
+                player.targetY = resonatingFriend.y;
+                
+                mouse.x = player.targetX;
+                mouse.y = player.targetY;
+            } 
+            else {
+                player.targetX = mouse.x;
+                player.targetY = mouse.y;
+            }
+        }
+
+        player.x += (player.targetX - player.x) / (15 * player.mass);
+        player.y += (player.targetY - player.y) / (15 * player.mass);
+
+        friends.forEach(f => {
+            if ((f.state === 'tethered' || f.state === 'dying') && modeTransition < 0.5) {
+                for (let i = 0; i < 3; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(player.x, player.y);
+                    const midX = (player.x + f.x) / 2 + (Math.random() - 0.5) * 40;
+                    const midY = (player.y + f.y) / 2 + (Math.random() - 0.5) * 40;
+                    ctx.quadraticCurveTo(midX, midY, f.x, f.y);
+                    ctx.strokeStyle = `rgba(220, 30, 30, ${(f.life / 200) * (1-modeTransition)})`;
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                }
+            }
+            else if (f.state === 'resonating' && modeTransition > 0.1) {
+                ctx.beginPath();
+                ctx.moveTo(player.x, player.y);
+                const offset = Math.sin(time * 5 + f.x) * 20;
+                ctx.quadraticCurveTo((player.x + f.x)/2 + offset, (player.y + f.y)/2, f.x, f.y);
+                ctx.strokeStyle = `hsla(${f.hue}, 80%, 70%, ${f.resonanceLevel * modeTransition * 0.6})`;
+                ctx.lineWidth = 2.5; 
+                ctx.stroke();
+            }
+        });
+
+        friends.forEach(f => { f.update(); f.draw(); });
+
+        const pulse = Math.sin(Date.now() / 150) * 2;
+        player.size = player.baseSize + alienation * 1.2 * (1 - modeTransition); 
+        const currentSize = player.size + pulse;
+
+        const rAura = 255 - modeTransition * 0;   
+        const gAura = 30 + modeTransition * 225; 
+        const bAura = 30 + modeTransition * 225;
+        
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, currentSize + 10 + modeTransition*5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${rAura}, ${gAura}, ${bAura}, ${0.1 + tetheredCount * 0.05 + modeTransition * 0.1})`;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, currentSize, 0, Math.PI * 2);
+        const innerColor = Math.floor(modeTransition * 255);
+        ctx.fillStyle = `rgba(${innerColor}, ${innerColor}, ${innerColor}, ${1 - modeTransition*0.8})`; 
+        ctx.fill();
+
+        const rLine = Math.max(30, 255 - alienation * 15) * (1-modeTransition) + 255 * modeTransition;
+        ctx.strokeStyle = `rgba(${rLine}, ${gAura}, ${bAura}, 1)`;
+        ctx.lineWidth = (2 + tetheredCount * 1.5 + alienation * 0.5) * (1-modeTransition) + 2 * modeTransition;
+        ctx.stroke();
+
+        darkParticles.forEach((p, i) => {
+            p.x += p.vx; p.y += p.vy; p.life -= 0.02;
+            ctx.fillStyle = `rgba(150, 50, 50, ${p.life})`;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+            if (p.life <= 0) darkParticles.splice(i, 1);
+        });
+
+        lightParticles.forEach((p, i) => {
+            p.x += p.vx; p.y += p.vy; p.life -= 0.012; 
+            ctx.fillStyle = `hsla(${p.hue}, 80%, 80%, ${p.life})`;
+            ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI*2); ctx.fill(); 
+            if (p.life <= 0) lightParticles.splice(i, 1);
+        });
+
+        drawToggleUI();
+
+        friends = friends.filter(f => !f.dead);
+        flowParticles = flowParticles.filter(p => p.y > -50);
+    }
+
+    animate();
+</script>
+</body>
+</html>
