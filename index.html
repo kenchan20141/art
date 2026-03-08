@@ -63,6 +63,31 @@
     }
     @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(10px); } }
 
+    /* === Language Switcher (New Added) === */
+    .lang-toggle {
+        position: fixed; top: 40px; right: 5vw; z-index: 2000;
+        background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border); padding: 12px 24px; border-radius: 100px;
+        color: var(--text-muted); font-size: 0.75rem; letter-spacing: 3px; font-weight: 600;
+        cursor: pointer; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); 
+        text-transform: uppercase; display: flex; align-items: center; gap: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    .lang-toggle:hover {
+        color: #fff; border-color: rgba(255,255,255,0.3); transform: translateY(-2px);
+    }
+    .lang-toggle span { position: relative; z-index: 2; }
+    /* Loading Spinner for API */
+    .lang-spinner {
+        width: 10px; height: 10px; border: 2px solid var(--accent);
+        border-right-color: transparent; border-radius: 50%;
+        animation: langSpin 0.8s linear infinite; display: none;
+    }
+    .lang-toggle.loading .lang-spinner { display: block; }
+    .lang-toggle.loading span { opacity: 0.5; }
+    @keyframes langSpin { 100% { transform: rotate(360deg); } }
+
+
     /* === Exhibition List (Desktop Default) === */
     .exhibition-list {
         display: flex; flex-direction: column; gap: 20vh; padding: 10vh 5vw 25vh;
@@ -94,7 +119,7 @@
     }
     .exhibit-item:nth-child(even) .exhibit-content-wrapper { flex-direction: row-reverse; }
 
-    /* 3D Frame & Preview - 強化邊界清晰度 */
+    /* 3D Frame & Preview */
     .preview-container {
         flex: 1.5; width: 100%; aspect-ratio: 16 / 10; background: #0a0a0c; position: relative; overflow: hidden;
         border: 1px solid rgba(255, 255, 255, 0.15); 
@@ -103,7 +128,6 @@
         box-shadow: 0 20px 50px rgba(0,0,0,0.8); 
         transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    /* 沿用初代設計的精緻內邊框 */
     .preview-container::after { 
         content: ''; position: absolute; inset: 0; 
         border: 1px solid rgba(255,255,255,0.1); 
@@ -162,6 +186,8 @@
         
         .exhibition-list:has(.exhibit-item:hover) .exhibit-item:not(:hover) { opacity: 1; filter: none; }
         .exhibit-item:hover .preview-container { transform: none; box-shadow: 0 15px 35px rgba(0,0,0,0.6); }
+
+        .lang-toggle { top: 20px; right: 20px; padding: 10px 18px; font-size: 0.7rem; }
     }
 
 
@@ -192,13 +218,13 @@
         .nav-node { width: 30px; } .nav-node.active { width: 40px; }
     }
 
-    /* ================= 播放器 UI (獨立空間防重疊 ＋ 深色高級賞析面板) ================= */
+    /* ================= 播放器 UI ================= */
     .viewer {
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
         background: #000; z-index: 2000; 
         opacity: 0; pointer-events: none;
         transition: opacity 0.6s ease;
-        display: flex; flex-direction: column; /* 上下切割避免重疊 */
+        display: flex; flex-direction: column; 
     }
     .viewer.active { opacity: 1; pointer-events: auto; }
 
@@ -233,12 +259,10 @@
 
     .analysis-panel.show { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
     
-    /* 紅色斜體優雅標題 */
     .analysis-panel h3 { 
         font-family: var(--font-serif); font-size: 2rem; margin: 0 0 20px 0; 
         font-weight: 300; font-style: italic; color: var(--accent); 
     }
-    /* 灰色清晰內文 */
     .analysis-panel p { 
         margin: 0; font-size: 0.95rem; line-height: 1.8; color: #ccc; 
         text-align: justify; font-family: var(--font-sans); font-weight: 300; 
@@ -255,7 +279,7 @@
         }
     }
 
-    /* ================= 原生預覽圖純 CSS 藝術 (維持原樣) ================= */
+    /* ================= CSS Art Assets (Unchanged) ================= */
     .preview-art1 { position: absolute; inset: 0; display: flex; flex-wrap: wrap; gap: 4px; padding: 20px; align-content: center; justify-content: center; opacity: 0.5; }
     .preview-art1 div { width: 10px; height: 10px; background: #fff; }
     @keyframes chaosMove1 { 0%, 100% { transform: translate(0, 0) rotate(0deg); background: #fff; } 50% { transform: translate(20px, -15px) rotate(45deg); background: var(--accent); } }
@@ -357,16 +381,10 @@
     @keyframes art12DropAnim { 0% { top: 0; opacity: 1; transform: translateX(0); } 20% { transform: translateX(5px); } 40% { transform: translateX(-5px); } 60% { top: 65%; opacity: 1; } 61% { opacity: 0; } 100% { opacity: 0; } }
     @keyframes art12StackAnim { 0% { height: 0; background: #444; } 80% { height: 60%; background: #666; } 90%, 100% { height: 66%; background: #d23838; box-shadow: 0 0 15px #d23838; } }
 
-
-
-
-
-/* --- 新增：NO.13 預覽圖 CSS --- */
     .preview-art13 { position: absolute; inset: 0; background: #050508; display: flex; align-items: center; justify-content: center; overflow: hidden; }
     .art13-center { width: 16px; height: 16px; border-radius: 50%; animation: a13-core 6s infinite; z-index: 2; }
     .art13-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; animation: a13-dot 6s infinite; }
     .art13-line { position: absolute; height: 2px; transform-origin: left center; animation: a13-line 6s infinite; }
-    
     @keyframes a13-core {
         0%, 45% { box-shadow: 0 0 15px #d23838; border: 2px solid #d23838; background: #222; }
         50%, 100% { box-shadow: 0 0 20px #fff; border: 2px solid #fff; background: #fff; }
@@ -384,87 +402,35 @@
         70%, 100% { opacity: 0.6; width: 45px; background: #88ccff; transform: translate(-10px, 0) rotate(180deg); }
     }
 
-
-
-
-/* --- 新增：NO.14 預覽圖 CSS --- */
-    .preview-art14 { 
-        position: absolute; inset: 0; background: #050508; 
-        display: flex; align-items: center; justify-content: center; overflow: hidden; 
-    }
-    
-    /* 基礎形狀設定，利用 currentColor 讓邊框顏色能平滑漸變 */
-    .art14-c1, .art14-c2 {
-        position: absolute; width: 40px; height: 40px; 
-        border: 4px solid currentColor; border-top-color: transparent !important;
-    }
-
-    /* P1：圓形 (保有自我者) */
-    .art14-c1 {
-        border-radius: 50%;
-        animation: a14-circle 8s infinite cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    /* P2：正方形 (將會失去自我者) */
-    .art14-c2 {
-        border-radius: 4px; /* 初始為帶有稜角的正方形 */
-        animation: a14-square 8s infinite cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    /* 越界碰撞時的排斥波紋 */
-    .art14-clash-wave {
-        position: absolute; width: 60px; height: 60px; border-radius: 50%;
-        border: 1px solid #d23838; opacity: 0; pointer-events: none;
-        animation: a14-wave 8s infinite;
-    }
-
-    /* --- 圓形的動畫軌跡 --- */
+    .preview-art14 { position: absolute; inset: 0; background: #050508; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .art14-c1, .art14-c2 { position: absolute; width: 40px; height: 40px; border: 4px solid currentColor; border-top-color: transparent !important; }
+    .art14-c1 { border-radius: 50%; animation: a14-circle 8s infinite cubic-bezier(0.4, 0, 0.2, 1); }
+    .art14-c2 { border-radius: 4px; animation: a14-square 8s infinite cubic-bezier(0.4, 0, 0.2, 1); }
+    .art14-clash-wave { position: absolute; width: 60px; height: 60px; border-radius: 50%; border: 1px solid #d23838; opacity: 0; pointer-events: none; animation: a14-wave 8s infinite; }
     @keyframes a14-circle {
-        /* 1. 獨立狀態：遙遠、平靜藍色、各自旋轉 */
         0%, 15% { transform: translateX(-45px) rotate(-180deg); color: #88ccff; box-shadow: -5px 0 15px rgba(136,204,255,0.2); }
-        
-        /* 2. 適度靠近：並肩同行 (缺口朝上 0deg)，散發溫暖光芒 */
         25%, 35% { transform: translateX(-18px) rotate(0deg); color: #ffdd88; box-shadow: 0 0 15px rgba(255,221,136,0.3); }
-        
-        /* 3. 靠得太近：紅光衝突，激烈推開那個變成自己形狀的人 (震動) */
         42% { transform: translateX(-5px) rotate(15deg); color: #d23838; box-shadow: none; }
-        44%, 48%, 52% { transform: translateX(-8px) rotate(-5deg); color: #ff3333; } /* 瘋狂震動 */
-        46%, 50%, 54% { transform: translateX(-3px) rotate(25deg); color: #550000; } /* 瘋狂震動 */
+        44%, 48%, 52% { transform: translateX(-8px) rotate(-5deg); color: #ff3333; } 
+        46%, 50%, 54% { transform: translateX(-3px) rotate(25deg); color: #550000; } 
         58% { transform: translateX(-5px) rotate(15deg); color: #d23838; }
-        
-        /* 4. 退回獨立狀態 */
         70%, 100% { transform: translateX(-45px) rotate(180deg); color: #88ccff; box-shadow: -5px 0 15px rgba(136,204,255,0.2); }
     }
-
-    /* --- 正方形的動畫軌跡 --- */
     @keyframes a14-square {
-        /* 1. 獨立狀態：遙遠、平靜橙色、保有方形稜角 */
         0%, 15% { transform: translateX(45px) rotate(90deg); color: #ffaa66; box-shadow: 5px 0 15px rgba(255,170,102,0.2); border-radius: 4px; }
-        
-        /* 2. 適度靠近：並肩同行 (缺口朝上 0deg)，依然是正方形 */
         25%, 35% { transform: translateX(18px) rotate(0deg); color: #ffdd88; box-shadow: 0 0 15px rgba(255,221,136,0.3); border-radius: 4px; }
-        
-        /* 3. 靠得太近：失去自我！(border-radius 變成 50% 圓形化)，盲目貼合卻引發衝突 */
         42% { transform: translateX(5px) rotate(15deg); color: #d23838; box-shadow: none; border-radius: 50%; } 
-        44%, 48%, 52% { transform: translateX(3px) rotate(35deg); color: #ff3333; border-radius: 50%; } /* 瘋狂震動 */
-        46%, 50%, 54% { transform: translateX(8px) rotate(-5deg); color: #550000; border-radius: 50%; } /* 瘋狂震動 */
+        44%, 48%, 52% { transform: translateX(3px) rotate(35deg); color: #ff3333; border-radius: 50%; } 
+        46%, 50%, 54% { transform: translateX(8px) rotate(-5deg); color: #550000; border-radius: 50%; } 
         58% { transform: translateX(5px) rotate(15deg); color: #d23838; border-radius: 50%; }
-        
-        /* 4. 退回獨立狀態：找回原本的正方形模樣 */
         70%, 100% { transform: translateX(45px) rotate(-90deg); color: #ffaa66; box-shadow: 5px 0 15px rgba(255,170,102,0.2); border-radius: 4px; }
     }
-
-    /* --- 排斥波紋動畫 --- */
     @keyframes a14-wave {
         0%, 40% { opacity: 0; transform: scale(0.5); border-width: 4px; }
         43% { opacity: 0.8; transform: scale(1); border-width: 2px; }
         55% { opacity: 0; transform: scale(2); border-width: 0px; }
         100% { opacity: 0; }
     }
-
-
-
-
 </style>
 </head>
 <body>
@@ -472,10 +438,16 @@
 <!-- Film Grain Texture -->
 <div class="noise-overlay"></div>
 
+<!-- Language Toggle (Added) -->
+<div class="lang-toggle" id="lang-btn">
+    <div class="lang-spinner"></div>
+    <span id="lang-text">LANG: ZH</span>
+</div>
+
 <header class="museum-header" id="header">
     <h1>Reflections</h1>
-    <p>一埸關於生活與學習認知的數位藝術展覽。</p>
-    <div class="scroll-indicator">Scroll to Explore</div>
+    <p id="header-desc">一埸關於生活與學習認知的數位藝術展覽。</p>
+    <div class="scroll-indicator" id="scroll-text">Scroll to Explore</div>
 </header>
 
 <main class="exhibition-list" id="gallery">
@@ -492,7 +464,7 @@
     </div>
 </nav>
 
-<!-- 全螢幕展區 (獨立空間防重疊 ＋ 深色高級賞析面板) -->
+<!-- 全螢幕展區 -->
 <div class="viewer" id="viewer">
     <div class="ui-top-bar">
         <button class="ui-btn" id="btn-info">[ 賞析 Read ]</button>
@@ -508,7 +480,8 @@
 </div>
 
 <script>
-    const exhibits = [
+    // 1. Data Source (Original Chinese)
+    const originalExhibits = [
         { id: 1, url: "art1.html", num: "NO. 01", title: "失焦矩陣", subtitle: "社交媒體與注意力的瓦解", previewHTML: `<div class="preview-art1">${'<div></div>'.repeat(30)}</div>`, analysis: "這件互動裝置具象化了數位時代的專注力危機。游標的每一次移動與點擊，都如同我們在社交媒體上的無心滑動，看似微不足道，卻不斷累積著混亂的變數。當外在的刺激超過臨界點，原本整齊的認知矩陣將徹底崩解。作品靜靜拋出一個提問：在碎片化資訊的洪流中，我們該如何守護內在的秩序。" },
         { id: 2, url: "art2.html", num: "NO. 02", title: "重構與歸類", subtitle: "從碎片堆疊到框架思考", previewHTML: `<div class="preview-art2"><div class="art2-frame"><div class="art2-block"></div></div></div>`, analysis: "學習的過程往往面臨兩種截然不同的路徑。盲目堆積零散的細節，如同在沒有地基的狀態下築起高塔，隨時可能因微小的失衡而全面崩潰。相反地，建立宏觀的框架，則是先為知識劃定清晰的網格，讓繁雜的碎片能夠精準歸位。這組對比裝置揭示了系統化思考的價值：唯有先看見整體的輪廓，局部的細節才能找到安放的座標。" },
         { id: 3, url: "art3.html", num: "NO. 03", title: "徒勞的完美", subtitle: "完美主義的無盡迴圈與崩潰", previewHTML: `<div class="preview-art3">${'<div class="p-dot"></div>'.repeat(16)}</div>`, analysis: "這件互動裝置精準地諷刺了學生在學習過程中對「完美」的過度執著。畫布上微小的瑕疵總誘使我們去修正，但如同現實中的「打地鼠」，過度苛求細節的代價，往往是引發更多預料之外的混亂。當修復的動作本身成為破壞整體結構的根源，作品揭示了一個殘酷的悖論：無止盡的完美主義，終究是一場徒勞無功的自我消耗。有時候，接受適度的不完美，才是維持系統運作的正解。" },
@@ -521,31 +494,112 @@
         { id: 10, url: "art10.html", num: "NO. 10", title: "無效的用功", subtitle: "用功不是為了感動自己", previewHTML: `<div class="preview-art10"><div class="art10-core-p"></div><div class="art10-node-p"></div><div class="art10-line-p"></div></div>`, analysis: "這件互動裝置揭示了學習與工作中關於努力的真相。如果你試圖直接轉動輪子，你會發現阻力巨大，車輪會震動發紅，最終甚至會石化卡死——這象徵著盲目刷題與死記硬背的末路。唯有先將散落的知識節點與作為發亮的動力源接通，建立起完整的能量網絡，車輪才能在幾乎不費力的情況下自動運轉。" },
         { id: 11, url: "art11.html", num: "NO. 11", title: "定靜的試煉", subtitle: "在躁動世界重拾閱讀本能", previewHTML: `<div class="preview-art11"><div class="art11-text-beam"></div><div class="art11-popup"></div><div class="art11-popup"></div></div>`, analysis: "這件作品是一場關於專注力的數位修行。畫面上引用了《大學》的經典篇章，但周圍不斷彈出的社群通知試圖將你的視線拉走。機制極其殘酷卻寫實：滑鼠的每一次游移都代表心智的動搖，導致文字模糊難辨；唯有保持滑鼠與身體的絕對靜止，拒絕所有數位誘惑，清晰的真理才會浮現。" },
         { id: 12, url: "art12.html", num: "NO. 12", title: "控制的幻覺", subtitle: "努力的落點與命運的紅線", previewHTML: `<div class="preview-art12"><div class="art12-limit-line"></div><div class="art12-ball-drop"></div><div class="art12-ball-drop"></div><div class="art12-stack-bar"></div><div class="art12-stack-bar"></div></div>`, analysis: "這件作品以釘板的機率遊戲，辯證了「努力」的真實價值。雖然落下的路徑充滿隨機變數，但你投入的蓄力越深，光球便越有機會落入高分的區間——這證明努力並非徒勞。作品試圖傳達的，還有一種在積極進取後的釋懷：我們能完全掌控的只有手中的力度，至於結果的些許偏差，我們只能學會優雅地接受。" },
-        
-        // ▼ 新增這一段 NO.13 ▼
-        { 
-            id: 13, 
-            url: "art13.html", 
-            num: "NO. 13", 
-            title: "旅伴", 
-            subtitle: "執念的枷鎖與共鳴的自由", 
-            previewHTML: `<div class="preview-art13"><div class="art13-line"></div><div class="art13-dot"></div><div class="art13-center"></div></div>`, 
-           analysis: "這件互動裝置深刻剖析了人際關係的本質，以及我們面對相聚與離別的態度。當我們懷抱控制慾，試圖強行捕捉並綁定周遭的個體時，換來的往往是恐懼、逃離，以及過度拉扯所留下的暗色傷疤。\n\n此外，作品的深意更在於揭示一個無奈卻美麗的生命常態：無論是朋友、戀人還是家人，每個人的人生軌跡都有屬於自己的「終點站」。他們注定只會在生命的某個階段與我們並肩同行，離別是必然的宿命。\n\n當我們放下緊抓不放的執念，以共鳴取代佔有，便能看見彼此交會時綻放的溫暖光芒。真正的愛與成熟，是懂得在他們到站離去時不再強留；學會坦然接受緣分的聚散，目送他們化作璀璨的光點，優雅而無憾地告別。"
-        },{ 
-            id: 14, 
-            url: "art14.html", 
-            num: "NO. 14", 
-            title: "越界的互補", 
-            subtitle: "我們兩個人，並排在一起，看看這個落寞的人間。", 
-            previewHTML: `<div class="preview-art14"><div class="art14-c1"></div><div class="art14-c2"></div><div class="art14-clash-wave"></div></div>`, 
-            analysis: "這件裝置深刻剖析了親密關係中的「互補」迷思。畫面上兩個殘缺的幾何體，如同帶著各自創傷與缺陷的靈魂。當它們保持適當距離時，能在各自的軌道上平靜地散發出柔和的光芒；然而，一旦它們試圖越界，妄想用對方的存在來填補自己靈魂的缺口時，不僅無法完美契合，反而會引發劇烈的排斥與震盪，原本的光彩也會隨之被焦慮的血紅色吞噬。\n\n人生在世，誰都不完美，誰都無法真正「救贖」誰。與其病態地緊抓著一個同樣有缺陷的人來補自己的缺陷，不如學會帶著裂痕獨立旋轉。真正的愛，是我們承認各自的殘缺，留下呼吸的距離，卻依然能並肩同行。"
-        }
+        { id: 13, url: "art13.html", num: "NO. 13", title: "旅伴", subtitle: "執念的枷鎖與共鳴的自由", previewHTML: `<div class="preview-art13"><div class="art13-line"></div><div class="art13-dot"></div><div class="art13-center"></div></div>`, analysis: "這件互動裝置深刻剖析了人際關係的本質，以及我們面對相聚與離別的態度。當我們懷抱控制慾，試圖強行捕捉並綁定周遭的個體時，換來的往往是恐懼、逃離，以及過度拉扯所留下的暗色傷疤。\n\n此外，作品的深意更在於揭示一個無奈卻美麗的生命常態：無論是朋友、戀人還是家人，每個人的人生軌跡都有屬於自己的「終點站」。他們注定只會在生命的某個階段與我們並肩同行，離別是必然的宿命。\n\n當我們放下緊抓不放的執念，以共鳴取代佔有，便能看見彼此交會時綻放的溫暖光芒。真正的愛與成熟，是懂得在他們到站離去時不再強留；學會坦然接受緣分的聚散，目送他們化作璀璨的光點，優雅而無憾地告別。" },
+        { id: 14, url: "art14.html", num: "NO. 14", title: "越界的互補", subtitle: "我們兩個人，並排在一起，看看這個落寞的人間。", previewHTML: `<div class="preview-art14"><div class="art14-c1"></div><div class="art14-c2"></div><div class="art14-clash-wave"></div></div>`, analysis: "這件裝置深刻剖析了親密關係中的「互補」迷思。畫面上兩個殘缺的幾何體，如同帶著各自創傷與缺陷的靈魂。當它們保持適當距離時，能在各自的軌道上平靜地散發出柔和的光芒；然而，一旦它們試圖越界，妄想用對方的存在來填補自己靈魂的缺口時，不僅無法完美契合，反而會引發劇烈的排斥與震盪，原本的光彩也會隨之被焦慮的血紅色吞噬。\n\n人生在世，誰都不完美，誰都無法真正「救贖」誰。與其病態地緊抓著一個同樣有缺陷的人來補自己的缺陷，不如學會帶著裂痕獨立旋轉。真正的愛，是我們承認各自的殘缺，留下呼吸的距離，卻依然能並肩同行。" }
     ];
+
+    let currentExhibits = originalExhibits; // Will hold translated version
+    let translatedExhibitsCache = null;
+
+    // Static DOM Elements map (Selector: Original ZH Text)
+    const staticDomMap = {
+        '#header-desc': "一埸關於生活與學習認知的數位藝術展覽。",
+        '#scroll-text': "Scroll to Explore", // English stays English usually, but we keep it in flow
+        '#btn-info': "[ 賞析 Read ]",
+        '#btn-close': "[ 離開 Exit ]"
+    };
+    let translatedDomCache = null;
 
     const ITEMS_PER_SECTOR = 4;
     let currentSector = 0;
-    const totalSectors = Math.ceil(exhibits.length / ITEMS_PER_SECTOR);
+    const totalSectors = Math.ceil(currentExhibits.length / ITEMS_PER_SECTOR);
     const gallery = document.getElementById('gallery');
+
+    // --- Translation Logic ---
+    const langBtn = document.getElementById('lang-btn');
+    const langText = document.getElementById('lang-text');
+    let currentLang = 'zh';
+
+    async function translateText(text, targetLang) {
+        if (!text || targetLang === 'zh') return text;
+        try {
+            // Use Google Translate Free Endpoint (Works for small batches, careful with rate limits)
+            const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`);
+            const data = await res.json();
+            // Google API returns array of sentences, join them back
+            return data[0].map(x => x[0]).join('');
+        } catch (e) {
+            console.error("Translation API Error:", e);
+            return text; // Fallback to original
+        }
+    }
+
+    async function switchLanguage() {
+        if (langBtn.classList.contains('loading')) return;
+
+        if (currentLang === 'zh') {
+            // Switch to EN
+            langBtn.classList.add('loading');
+            langText.innerText = "TRANSLATING...";
+            
+            try {
+                // 1. Check Cache
+                if (!translatedExhibitsCache) {
+                    // Translate Data Array (Deep Clone first)
+                    const tempExhibits = JSON.parse(JSON.stringify(originalExhibits));
+                    
+                    // Parallel Processing for Data
+                    const promises = tempExhibits.map(async (ex) => {
+                        ex.title = await translateText(ex.title, 'en');
+                        ex.subtitle = await translateText(ex.subtitle, 'en');
+                        ex.analysis = await translateText(ex.analysis, 'en');
+                        return ex;
+                    });
+                    translatedExhibitsCache = await Promise.all(promises);
+
+                    // Translate DOM Elements
+                    translatedDomCache = {};
+                    for (const [selector, originalText] of Object.entries(staticDomMap)) {
+                        translatedDomCache[selector] = await translateText(originalText, 'en');
+                    }
+                }
+
+                // Apply Translation
+                currentExhibits = translatedExhibitsCache;
+                applyDomTranslation(translatedDomCache);
+                
+                currentLang = 'en';
+                langText.innerText = "LANG: EN";
+            } catch (err) {
+                console.error(err);
+                langText.innerText = "ERROR";
+            } finally {
+                langBtn.classList.remove('loading');
+                renderSector(currentSector, false); // Re-render gallery with new text
+            }
+
+        } else {
+            // Switch back to ZH (Instant)
+            currentExhibits = originalExhibits;
+            applyDomTranslation(staticDomMap);
+            currentLang = 'zh';
+            langText.innerText = "LANG: ZH";
+            renderSector(currentSector, false);
+        }
+    }
+
+    function applyDomTranslation(mapData) {
+        if(!mapData) return;
+        for (const [selector, text] of Object.entries(mapData)) {
+            const el = document.querySelector(selector);
+            if(el) el.innerText = text;
+        }
+    }
+
+    langBtn.addEventListener('click', switchLanguage);
+
+
+    // --- Original Logic (Refactored to use currentExhibits) ---
 
     function init() {
         document.getElementById('total-sector-display').innerText = totalSectors.toString().padStart(2, '0');
@@ -588,9 +642,11 @@
             node.classList.toggle('active', idx === sectorIndex);
         });
 
+        // Use a short fade out before replacing content
         gsap.to('.exhibit-item', { opacity: 0, y: 30, duration: 0.3, stagger: 0.05, onComplete: () => {
             gallery.innerHTML = '';
-            const sectorExhibits = exhibits.slice(sectorIndex * ITEMS_PER_SECTOR, (sectorIndex + 1) * ITEMS_PER_SECTOR);
+            // Use currentExhibits instead of hardcoded array
+            const sectorExhibits = currentExhibits.slice(sectorIndex * ITEMS_PER_SECTOR, (sectorIndex + 1) * ITEMS_PER_SECTOR);
 
             sectorExhibits.forEach((ex) => {
                 const article = document.createElement('article');
@@ -631,7 +687,6 @@
     function initGSAPAnimations() {
         gsap.registerPlugin(ScrollTrigger);
         ScrollTrigger.refresh(); 
-        
         const isMobile = window.innerWidth <= 768;
 
         gsap.utils.toArray('.exhibit-item').forEach(item => {
@@ -639,13 +694,11 @@
                 scrollTrigger: { trigger: item, start: "top 85%" },
                 opacity: 1, y: 0, duration: 1.2, ease: "power3.out"
             });
-            
             const bgNum = item.querySelector('.exhibit-bg-num');
             gsap.to(bgNum, {
                 scrollTrigger: { trigger: item, start: "top bottom", end: "bottom top", scrub: 1 },
                 y: isMobile ? 50 : -150, ease: "none"
             });
-
             if (isMobile) {
                 const infoCard = item.querySelector('.exhibit-info');
                 gsap.fromTo(infoCard, 
@@ -671,7 +724,6 @@
         });
     }
 
-    // --- 播放器操作邏輯 ---
     const viewer = document.getElementById('viewer');
     const artFrame = document.getElementById('art-frame');
     const analysisPanel = document.getElementById('analysis-panel');
@@ -693,28 +745,23 @@
         setTimeout(() => { artFrame.src = ""; }, 800);
     });
 
-   const btnInfo = document.getElementById('btn-info');
+    const btnInfo = document.getElementById('btn-info');
+    btnInfo.addEventListener('click', (e) => {
+        e.stopPropagation(); 
+        analysisPanel.classList.toggle('show');
+    });
 
-// 1. 點擊「賞析」按鈕：切換面板顯示，並阻止事件冒泡
-btnInfo.addEventListener('click', (e) => {
-    e.stopPropagation(); 
-    analysisPanel.classList.toggle('show');
-});
+    document.addEventListener('click', (e) => {
+        if (analysisPanel.classList.contains('show') && !analysisPanel.contains(e.target)) {
+            analysisPanel.classList.remove('show');
+        }
+    });
 
-// 2. 點擊主畫面其他區域：若點擊的目標不在賞析面板內，則關閉面板
-document.addEventListener('click', (e) => {
-    if (analysisPanel.classList.contains('show') && !analysisPanel.contains(e.target)) {
-        analysisPanel.classList.remove('show');
-    }
-});
-
-// 3. 點擊 iframe (互動藝術) 內部：偵測焦點轉移以關閉面板
-window.addEventListener('blur', () => {
-    // 當使用者點擊 iframe 內部時，主視窗會失去焦點 (blur)
-    if (analysisPanel.classList.contains('show') && document.activeElement === artFrame) {
-        analysisPanel.classList.remove('show');
-    }
-});
+    window.addEventListener('blur', () => {
+        if (analysisPanel.classList.contains('show') && document.activeElement === artFrame) {
+            analysisPanel.classList.remove('show');
+        }
+    });
 
     window.onload = init;
 </script>
