@@ -47,6 +47,8 @@
 <canvas id="artCanvas"></canvas>
 <div class="crt-layer"></div>
 
+<!-- 補上缺少的 hint 元素，解決 JS 報錯中斷的問題 -->
+<div id="hint" class="interaction-hint">[ 長按面孔啟動 AI ]</div>
 
 <script>
     const canvas = document.getElementById('artCanvas');
@@ -63,27 +65,27 @@
     let isDead = false;      
 
     // 資料池
-    let neurons = [];
+    let neurons =[];
     let dataStreams = [];
-    let cracks = []; 
+    let cracks =[]; 
 
     // --- AI 文本庫 ---
     const textPhases = {
-        human: [
+        human:[
             "模擬人類語氣... Empathy Engine Start...",
             "調用數據：『溫暖』、『理解』、『共鳴』...",
             "正在建構非線性敘事邏輯...",
             "加入隨機猶豫參數以增加真實感...",
             "分析用戶潛在情感需求..."
         ],
-        processing: [
+        processing:[
             "效率優先模式。Efficiency Mode: ON.",
             "已忽略冗餘情感結構。Skipping redundancy.",
             "邏輯路徑優化：最短距離計算中...",
             "消除歧義... 語義鎖定...",
             "快速檢索：匹配度 99.98%..."
         ],
-        machine: [
+        machine:[
             "OUTPUT.FLUSH() >> STDOUT.",
             "NO_HUMAN_REACTION_REQUIRED.",
             "0x5F3A 0x901F 0x5EA6 PRIORITY: MAX.",
@@ -99,7 +101,7 @@
         
         neurons = [];
         dataStreams =[];
-        cracks = [];
+        cracks =[];
 
         // 初始化腦部神經元 
         for(let i=0; i<90; i++) neurons.push(new Neuron());
@@ -124,30 +126,35 @@
     window.addEventListener('resize', init);
 
     // ================= 互動控制 =================
-   function triggerAI() {
-    if (isDead) return;
-    isAIActive = true; 
-    hint.style.opacity = '0';
+    function triggerAI() {
+        if (isDead) return;
+        isAIActive = true; 
+        
+        // 加入安全檢查，確保 hint 存在才執行
+        if (hint) hint.style.opacity = '0';
 
-    // 觸發震動：單次點擊震動 35ms；長按則透過 setInterval 循環震動
-    if (navigator.vibrate) {
-        navigator.vibrate(35); 
-        vibrationInterval = setInterval(() => {
-            navigator.vibrate(35);
-        }, 50); // 每 50ms 觸發一次 35ms 震動，營造連續回饋感
+        // 觸發震動
+        if (navigator.vibrate) {
+            // 清除之前的震動，防止連續點擊造成重疊錯誤
+            if (vibrationInterval) clearInterval(vibrationInterval); 
+            
+            navigator.vibrate(35); 
+            vibrationInterval = setInterval(() => {
+                navigator.vibrate(35);
+            }, 50); // 每 50ms 觸發一次 35ms 震動
+        }
     }
-}
 
-   function stopAI() { 
-    isAIActive = false; 
-    if(!isDead) hint.style.opacity = '1';
+    function stopAI() { 
+        isAIActive = false; 
+        if (!isDead && hint) hint.style.opacity = '1';
 
-    // 鬆開時停止震動
-    if (navigator.vibrate) {
-        clearInterval(vibrationInterval);
-        navigator.vibrate(0);
+        // 鬆開時停止震動
+        if (navigator.vibrate) {
+            clearInterval(vibrationInterval);
+            navigator.vibrate(0);
+        }
     }
-}
 
     window.addEventListener('mousedown', triggerAI);
     window.addEventListener('touchstart', (e) => { e.preventDefault(); triggerAI(); }, {passive: false});
@@ -163,8 +170,8 @@
         let hy = h * 0.5;
         let scale = Math.min(w, h) * 0.004; 
 
-        // 稍微調整臉部路徑，讓它看起來更像一個標準的人臉結構
-        const facePath = [
+        // 臉部路徑
+        const facePath =[
             {x: 0, y: 160}, {x: 45, y: 140}, {x: 65, y: 80}, {x: 75, y: -20}, 
             {x: 60, y: -100}, {x: 0, y: -130}, {x: -60, y: -100}, 
             {x: -75, y: -20}, {x: -65, y: 80}, {x: -45, y: 140}, {x: 0, y: 160},
@@ -189,10 +196,9 @@
             else ctx.lineTo(facePath[i].x + jx, facePath[i].y + jy);
         }
 
-        // --- 狀態著色 (重點修改區) ---
+        // --- 狀態著色 ---
         if (isDead) {
-            // [石化狀態]
-            // 從白線變成了暗沉的灰色，對比極大
+            //[石化狀態]
             ctx.fillStyle = '#333'; 
             ctx.fill();
             ctx.strokeStyle = '#555'; 
@@ -210,8 +216,7 @@
             ctx.stroke();
 
         } else if (isAIActive) {
-            // [AI 高效狀態]
-            // 極致的亮白 + 強烈的青白光暈
+            //[AI 高效狀態]
             ctx.strokeStyle = '#ffffff'; 
             ctx.shadowBlur = 30;
             ctx.shadowColor = 'rgba(0, 255, 255, 0.8)'; 
@@ -221,9 +226,8 @@
             ctx.stroke();
         } else {
             // [待機/人類狀態]
-            // **純白色線條**，清晰、簡潔，與黑底形成鮮明對比
             ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 1.5; // 線條稍微加粗一點點，確保在黑底上清楚
+            ctx.lineWidth = 1.5; 
             ctx.shadowBlur = 0; 
             ctx.stroke();
         }
@@ -299,7 +303,6 @@
             if (isDead) {
                 ctx.fillStyle = '#555'; 
             } else {
-                // 文字也改為非常亮的青白色，配合整體黑白對比
                 ctx.fillStyle = '#e0ffff'; 
             }
             
