@@ -27,19 +27,6 @@
         background-size: 100% 4px;
         box-shadow: inset 0 0 100px rgba(0,0,0,0.9);
     }
-
-    /* 互動提示 */
-    .interaction-hint {
-        position: fixed; top: 90%; left: 50%; 
-        transform: translateX(-50%);
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 12px;
-        letter-spacing: 2px;
-        z-index: 5; pointer-events: none; 
-        transition: opacity 0.3s;
-        text-align: center;
-        text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
-    }
 </style>
 </head>
 <body>
@@ -47,13 +34,9 @@
 <canvas id="artCanvas"></canvas>
 <div class="crt-layer"></div>
 
-<!-- 補上缺少的 hint 元素，解決 JS 報錯中斷的問題 -->
-<div id="hint" class="interaction-hint">[ 長按面孔啟動 AI ]</div>
-
 <script>
     const canvas = document.getElementById('artCanvas');
     const ctx = canvas.getContext('2d', { alpha: false }); 
-    const hint = document.getElementById('hint');
 
     let w, h;
     let time = 0;
@@ -66,7 +49,7 @@
 
     // 資料池
     let neurons =[];
-    let dataStreams = [];
+    let dataStreams =[];
     let cracks =[]; 
 
     // --- AI 文本庫 ---
@@ -129,25 +112,24 @@
     function triggerAI() {
         if (isDead) return;
         isAIActive = true; 
-        
-        // 加入安全檢查，確保 hint 存在才執行
-        if (hint) hint.style.opacity = '0';
 
-        // 觸發震動
+        // 觸發震動（大幅減弱實體震動幅度與頻率）
         if (navigator.vibrate) {
-            // 清除之前的震動，防止連續點擊造成重疊錯誤
+            // 清除之前的震動
             if (vibrationInterval) clearInterval(vibrationInterval); 
             
-            navigator.vibrate(35); 
+            // 單次微震動 15ms (原本為 35ms)
+            navigator.vibrate(15); 
+            
+            // 拉長間隔至 120ms (原本為 50ms)
             vibrationInterval = setInterval(() => {
-                navigator.vibrate(35);
-            }, 50); // 每 50ms 觸發一次 35ms 震動
+                navigator.vibrate(15);
+            }, 120); 
         }
     }
 
     function stopAI() { 
         isAIActive = false; 
-        if (!isDead && hint) hint.style.opacity = '1';
 
         // 鬆開時停止震動
         if (navigator.vibrate) {
@@ -187,6 +169,7 @@
 
         ctx.beginPath();
         
+        // 視覺震動幅度維持不變 (2.5)
         let shake = (isAIActive && !isDead) ? 2.5 : 0; 
 
         for (let i = 0; i < facePath.length; i++) {
