@@ -36,8 +36,8 @@
 
         let W, H;
         const grades =["LV 1", "LV 2", "LV 3", "LV 4", "LV 5", "LV 5*", "LV 5**"];
-        const binCounts =[0, 0, 0, 0, 0, 0, 0];
-        const balls =[];
+        const binCounts = [0, 0, 0, 0, 0, 0, 0];
+        const balls = [];
         const floatingTexts =[];
         
         // 互動狀態
@@ -138,13 +138,34 @@
             }
         }
 
-        class Ball {
+      class Ball {
             constructor(effort) {
                 this.effort = effort;
                 this.color = getEffortColor(effort);
                 this.col = effort * (COLS - 1); 
                 this.row = -1; 
                 
+                // --- 控制的錯覺：暗中決定命運 ---
+                this.hasFate = false;
+                this.targetCol = 0;
+                
+                let r = Math.random();
+                if (this.effort >= 0.75) {
+                    // 最大努力 (>75%)：有 40% 的機率強制落入 LV1 - LV3 (索引 0, 1, 2)
+                    if (r < 0.40) {
+                        this.hasFate = true;
+                        this.targetCol = Math.random() * 1.5 + 0.25; 
+                    }
+                } else if (this.effort >= 0.35) {
+                    // 中等努力 (35%~75%)：有 30% 的機率強制落入 LV1 - LV2 (索引 0, 1)
+                    if (r < 0.30) { // <--- 這裡的條件從 0.50 修改為 0.30
+                        this.hasFate = true;
+                        this.targetCol = Math.random() * 0.5 + 0.25; 
+                    }
+                }
+                // 若沒有被命運強制介入，則順其自然根據正常物理機率掉落
+                // --------------------------------
+
                 const { startX, startY, binWidth, rowHeight } = getBoardMetrics();
                 
                 this.x = startX + this.col * binWidth;
@@ -184,7 +205,23 @@
                     return;
                 }
 
-                let bounce = (Math.random() < 0.5) ? -0.5 : 0.5;
+                // 預設 50% 機率向左彈跳
+                let pLeft = 0.5;
+
+                // 如果這顆球「被系統針對」，則調整向左彈跳的機率以引導走向
+                if (this.hasFate) {
+                    let remaining_bounces = ROWS - this.row;
+                    let dist = this.targetCol - this.col; 
+                    // 計算要完美達到目標，所需的向左偏移次數
+                    let L = (remaining_bounces - dist * 2) / 2;
+                    pLeft = L / remaining_bounces;
+                    
+                    // 限制機率在 0 到 1 之間
+                    if (pLeft < 0) pLeft = 0;
+                    if (pLeft > 1) pLeft = 1;
+                }
+
+                let bounce = (Math.random() < pLeft) ? -0.5 : 0.5;
                 this.col += bounce;
 
                 if (this.col < 0) this.col = 0.5;
@@ -297,24 +334,21 @@
 
             // 4. 無文字、位於紅線上方的蓄力條
             if (!isGameOver) {
-                const barMaxWidth = 400; // 電腦端最大寬度限制
-                const barWidth = Math.min(W * 0.7, barMaxWidth); // 響應式寬度：螢幕寬的 70%
-                const barHeight = 6; // 蓄力條高度
-                const barX = (W - barWidth) / 2; // 置中對齊
+                const barMaxWidth = 400; 
+                const barWidth = Math.min(W * 0.7, barMaxWidth); 
+                const barHeight = 6; 
+                const barX = (W - barWidth) / 2; 
                 
-                // 變更高度：放在紅線(targetLineY)上方，同時與最頂部保留最少 30px 的安全距離
                 const barY = Math.max(30, targetLineY - rowHeight * 1.5); 
 
-                // 繪製蓄力條背景軌道
                 ctx.beginPath();
                 ctx.moveTo(barX, barY);
                 ctx.lineTo(barX + barWidth, barY);
-                ctx.strokeStyle = '#222'; // 暗灰色軌道
+                ctx.strokeStyle = '#222'; 
                 ctx.lineWidth = barHeight;
-                ctx.lineCap = 'round'; // 圓角兩端
+                ctx.lineCap = 'round'; 
                 ctx.stroke();
 
-                // 繪製目前蓄力進度
                 if (effortLevel > 0) {
                     const currentColor = getEffortColor(effortLevel);
                     const fillWidth = barWidth * effortLevel;
@@ -327,7 +361,6 @@
                     ctx.lineWidth = barHeight;
                     ctx.lineCap = 'round';
                     
-                    // 加上微微的發光效果，讓高蓄力時更有張力
                     ctx.shadowBlur = 10;
                     ctx.shadowColor = currentColor;
                     
