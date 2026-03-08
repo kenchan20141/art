@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>等待的藝術</title>
+    <style>
+        /* 基礎設置與深色空間 */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #0f0f11;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            font-family: 'Noto Serif TC', 'Songti TC', 'MingLiU', serif;
+        }
+
+        /* 場景過渡 */
+        .scene {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 2.5s ease-in-out;
+            pointer-events: none;
+        }
+
+        .scene.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* 第一幕：極致文藝的「靜 候」 */
+        .breathing-text {
+            color: #e6dfd1;
+            font-size: 24px;
+            font-weight: 200;
+            letter-spacing: 2.5em; /* 極寬字距營造孤獨與留白感 */
+            text-indent: 2.5em; 
+            animation: cinematic-breathe 5s infinite ease-in-out;
+            user-select: none;
+            text-shadow: 0 0 15px rgba(230, 223, 209, 0.4); 
+        }
+
+        @keyframes cinematic-breathe {
+            0%, 100% { opacity: 0; filter: blur(4px); transform: scale(0.98); }
+            50% { opacity: 0.85; filter: blur(0px); transform: scale(1); }
+        }
+
+        /* 第二幕：嚴謹物理原則的信封設計 */
+        .envelope-wrapper {
+            position: relative;
+            width: 340px;
+            height: 220px;
+            perspective: 1500px; 
+            cursor: pointer;
+            animation: float 4s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .env-back {
+            position: absolute;
+            inset: 0;
+            background: #8e6c51; 
+            z-index: 1;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        /* 藏在裡面的信紙 (加入了極淡的橫紋與最終信紙呼應) */
+        .env-paper {
+            position: absolute;
+            top: 15px; left: 20px; right: 20px; bottom: 15px;
+            background: #fbf9f4;
+            background-image: repeating-linear-gradient(
+                to bottom, transparent, transparent 15px, 
+                rgba(160, 140, 120, 0.15) 15px, rgba(160, 140, 120, 0.15) 16px
+            );
+            z-index: 2; 
+            transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+        }
+
+        /* 左右下摺口 (Border 構造，不脫離) */
+        .env-front-left {
+            position: absolute; top: 0; left: 0;
+            width: 0; height: 0;
+            border-top: 110px solid transparent; border-bottom: 110px solid transparent;
+            border-left: 170px solid #b68e68;
+            z-index: 3;
+        }
+        .env-front-right {
+            position: absolute; top: 0; right: 0;
+            width: 0; height: 0;
+            border-top: 110px solid transparent; border-bottom: 110px solid transparent;
+            border-right: 170px solid #a9835d;
+            z-index: 3;
+        }
+        .env-front-bottom {
+            position: absolute; bottom: 0; left: 0;
+            width: 0; height: 0;
+            border-left: 170px solid transparent; border-right: 170px solid transparent;
+            border-bottom: 125px solid #c59c75;
+            z-index: 4;
+        }
+
+        /* 頂部封口 */
+        .env-flap-top {
+            position: absolute; top: 0; left: 0;
+            width: 0; height: 0;
+            border-left: 170px solid transparent; border-right: 170px solid transparent;
+            border-top: 130px solid #ceaa83;
+            transform-origin: top center; 
+            transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 5;
+        }
+
+        /* 物理互動狀態 */
+        .envelope-wrapper.flap-open .env-flap-top {
+            transform: rotateX(180deg);
+        }
+
+        .envelope-wrapper.paper-pull .env-paper {
+            z-index: 6; 
+            transform: translateY(-160px); 
+        }
+
+        /* 第三幕：優雅的高級信箋 (修正白邊與表格感) */
+        .blank-lined-paper {
+            width: 85vw;
+            max-width: 600px;
+            height: 80vh;
+            max-height: 850px;
+            background-color: #fbf9f4; /* 溫潤如玉的象牙白紙色 */
+            
+            /* 神來之筆：純CSS繪製的微弱中央對摺痕跡，賦予紙張靈魂與重量 */
+            background-image: linear-gradient(
+                to right, 
+                transparent 49.5%, 
+                rgba(0,0,0,0.02) 50%, 
+                transparent 50.5%
+            );
+            
+            box-shadow: 
+                0 30px 60px rgba(0,0,0,0.7),
+                inset 0 0 50px rgba(180, 160, 130, 0.05); /* 邊緣微舊感 */
+            
+            transform: translateY(30px) scale(0.95);
+            transition: all 3s cubic-bezier(0.2, 0, 0.2, 1);
+            position: relative;
+        }
+
+        /* 優雅的橫紋線條 (不封閉的結構) */
+        .blank-lined-paper::after {
+            content: '';
+            position: absolute;
+            top: 16%;     /* 頂部留下優雅的抬頭空間 */
+            bottom: 8%;   /* 底部自然留白 */
+            left: 6%;     /* 極大縮窄了原本過寬的白邊 */
+            right: 6%;    /* 讓線條幾乎貫穿紙張 */
+            
+            /* 只保留頂部的一根深色引導線，完全去除左右邊框的「表格感」 */
+            border-top: 1px solid rgba(160, 140, 120, 0.4); 
+            
+            /* 放寬行距 (48px)，營造寫詩般的呼吸感 */
+            background-image: repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent 48px,
+                rgba(160, 140, 120, 0.25) 48px,
+                rgba(160, 140, 120, 0.25) 49px
+            );
+            background-position: top;
+        }
+
+        .scene.active .blank-lined-paper {
+            transform: translateY(0) scale(1);
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- 第一幕：無聲的靜候 -->
+    <div id="scene-wait" class="scene active">
+        <div class="breathing-text">靜 候</div>
+    </div>
+
+    <!-- 第二幕：等待換來的信封 -->
+    <div id="scene-envelope" class="scene">
+        <div class="envelope-wrapper" id="envelope">
+            <div class="env-back"></div>
+            <div class="env-paper"></div>
+            
+            <div class="env-front-left"></div>
+            <div class="env-front-right"></div>
+            <div class="env-front-bottom"></div>
+            
+            <div class="env-flap-top"></div>
+        </div>
+    </div>
+
+    <!-- 第三幕：無框的詩意信箋 -->
+    <div id="scene-blank" class="scene">
+        <div class="blank-lined-paper"></div>
+    </div>
+
+    <script>
+        // 嚴格保留：無提示的 60 秒等待 (開發測試時可改為 3000)
+        const WAITING_TIME = 60000; 
+
+        const sceneWait = document.getElementById('scene-wait');
+        const sceneEnvelope = document.getElementById('scene-envelope');
+        const sceneBlank = document.getElementById('scene-blank');
+        const envelope = document.getElementById('envelope');
+        let isOpened = false;
+
+        setTimeout(() => {
+            sceneWait.classList.remove('active');
+            
+            setTimeout(() => {
+                sceneEnvelope.classList.add('active');
+            }, 2500); 
+            
+        }, WAITING_TIME);
+
+        envelope.addEventListener('click', () => {
+            if (isOpened) return; 
+            isOpened = true;
+
+            // 1. 封口作 180 度向上翻開，完美接合
+            envelope.classList.add('flap-open');
+
+            // 2. 封口翻開後，信紙向上抽出並覆蓋封口
+            setTimeout(() => {
+                envelope.classList.add('paper-pull');
+            }, 1000); 
+
+            // 3. 進入最後「一切盡在不言中」的高級白紙畫面
+            setTimeout(() => {
+                sceneEnvelope.classList.remove('active');
+                
+                setTimeout(() => {
+                    sceneBlank.classList.add('active');
+                }, 1500); 
+            }, 3500); 
+        });
+    </script>
+
+</body>
+</html>
