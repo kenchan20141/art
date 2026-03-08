@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entrance | Reflections Digital Art Museum</title>
+
+<!-- Fonts: Editorial Serif & Tech Sans -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Space+Grotesk:wght@300;400;600&display=swap" rel="stylesheet">
+
+<!-- GSAP for Animations -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+<style>
+    :root {
+        --bg: #030305;
+        --accent: #d23838;
+        --text-muted: #888890;
+        --font-serif: 'Cormorant Garamond', serif;
+        --font-sans: 'Space Grotesk', sans-serif;
+    }
+
+    /* === Reset & Base === */
+    * { box-sizing: border-box; }
+    body, html {
+        margin: 0; padding: 0; 
+        background-color: var(--bg); /* 確保跳轉時背景是深色不刺眼 */
+        color: #f4f4f5; font-family: var(--font-sans); 
+        overflow: hidden; /* 進入頁面不需要滾動 */
+        -webkit-font-smoothing: antialiased;
+    }
+    
+    /* Film Grain Noise (保留底層質感) */
+    .noise-overlay {
+        position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: 0.035;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    }
+
+    /* ================= 售票口設計 ================= */
+    #ticket-booth {
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        perspective: 1000px; z-index: 10;
+    }
+
+    /* 玻璃擬物背景 */
+    .booth-glass {
+        position: absolute; inset: 5vw;
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 20px;
+        background: radial-gradient(circle at 50% 50%, rgba(20, 20, 25, 0.5), transparent 70%);
+        box-shadow: inset 0 0 100px rgba(0,0,0,0.8);
+        pointer-events: none;
+    }
+
+    .ticket-slot-container {
+        position: relative; width: 300px; height: 400px;
+        display: flex; flex-direction: column; align-items: center;
+    }
+
+    /* 吐票口 (細縫) */
+    .ticket-slot {
+        width: 180px; height: 4px; background: #000;
+        border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,1), inset 0 2px 5px rgba(255,255,255,0.1);
+        position: absolute; top: 50px; z-index: 10;
+        transition: box-shadow 0.3s;
+    }
+    .ticket-slot.active {
+        box-shadow: 0 0 15px var(--accent), inset 0 0 10px var(--accent);
+    }
+
+    /* 獲取按鈕 */
+    .btn-get-ticket {
+        position: absolute; top: 120px;
+        background: transparent; border: 1px solid rgba(255,255,255,0.3);
+        color: #fff; font-family: var(--font-sans); font-size: 0.8rem; letter-spacing: 4px;
+        padding: 12px 24px; border-radius: 4px; cursor: pointer; text-transform: uppercase;
+        transition: all 0.3s ease; backdrop-filter: blur(5px); z-index: 20;
+    }
+    .btn-get-ticket:hover {
+        border-color: var(--accent); color: var(--accent); background: rgba(210, 56, 56, 0.05);
+        transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    }
+
+    /* 門票隱藏與裁切區塊 */
+    .ticket-wrapper {
+        position: absolute; top: 52px; width: 220px; height: 350px;
+        overflow: hidden; 
+        clip-path: inset(0 0 100% 0); /* 初始完全隱藏，從底部裁切 */
+        z-index: 5;
+    }
+
+    /* 實體門票設計 */
+    .ticket {
+        width: 100%; height: 100%;
+        background: #e6dfd1; /* 紙張顏色 */
+        border-radius: 4px; position: relative;
+        display: flex; flex-direction: column; padding: 20px;
+        color: #111; cursor: pointer; transform-origin: top center;
+        box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+        background-image: linear-gradient(to bottom, rgba(0,0,0,0.02) 1px, transparent 1px);
+        background-size: 100% 4px;
+        transform-style: preserve-3d;
+    }
+    .ticket::before, .ticket::after {
+        content: ''; position: absolute; top: 60px; width: 20px; height: 20px;
+        background: var(--bg); border-radius: 50%; /* 模擬門票撕角邊緣 */
+    }
+    .ticket::before { left: -10px; } .ticket::after { right: -10px; }
+
+    /* 門票文字排版 */
+    .ticket-header { font-size: 0.65rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between;}
+    .ticket-title { font-family: var(--font-serif); font-size: 2.2rem; line-height: 1; font-weight: 600; text-align: center; margin-bottom: 5px; }
+    .ticket-subtitle { font-family: var(--font-sans); font-size: 0.65rem; letter-spacing: 3px; text-align: center; color: var(--accent); font-weight: 600; margin-bottom: auto;}
+    
+    .ticket-details { border-top: 1px dashed #aaa; padding-top: 15px; margin-top: 20px; font-size: 0.7rem; font-family: monospace; display: flex; flex-direction: column; gap: 5px; }
+    
+    /* 假條碼 */
+    .barcode {
+        height: 40px; width: 100%; margin-top: 15px;
+        background: repeating-linear-gradient(to right, #111 0, #111 2px, transparent 2px, transparent 4px, #111 4px, #111 5px, transparent 5px, transparent 8px, #111 8px, #111 12px, transparent 12px, transparent 14px);
+    }
+
+    /* 檢票雷射光 */
+    .scan-laser {
+        position: absolute; top: 0; left: -10%; width: 120%; height: 2px;
+        background: #00ffc8; box-shadow: 0 0 15px 5px rgba(0, 255, 200, 0.4);
+        opacity: 0; pointer-events: none; z-index: 30;
+    }
+
+    /* 提示文字 (移除預設 CSS 動畫以防止初始閃爍) */
+    .booth-text {
+        position: absolute; bottom: 15vh;
+        font-family: var(--font-sans); font-size: 0.7rem; letter-spacing: 4px;
+        color: var(--text-muted); text-transform: uppercase; opacity: 0;
+        pointer-events: none;
+    }
+
+    /* 手機版微調 */
+    @media (max-width: 768px) {
+        .ticket-slot-container { transform: scale(0.9); }
+    }
+</style>
+</head>
+<body>
+
+<!-- 雜訊質感層 -->
+<div class="noise-overlay"></div>
+
+<!-- 售票窗口區塊 -->
+<div id="ticket-booth">
+    <div class="booth-glass"></div>
+    <div class="ticket-slot-container">
+        <!-- 吐票縫隙 -->
+        <div class="ticket-slot" id="ticket-slot"></div>
+        <!-- 初始按鈕改為英文 -->
+        <button class="btn-get-ticket" id="btn-get-ticket">[ GET TICKET ]</button>
+        
+        <!-- 門票本體 -->
+        <div class="ticket-wrapper" id="ticket-wrapper">
+            <div class="ticket" id="the-ticket">
+                <div class="scan-laser" id="scan-laser"></div>
+                <div class="ticket-header">
+                    <span>Admit One</span>
+                    <span id="ticket-date">YYYY/MM/DD</span>
+                </div>
+                <div class="ticket-title">Reflections</div>
+                <div class="ticket-subtitle">DIGITAL ART MUSEUM</div>
+                
+                <div class="ticket-details">
+                    <div>NO: <span id="ticket-id">000-000</span></div>
+                    <div>SEC: <span id="ticket-time">00:00:00</span></div>
+                </div>
+                <div class="barcode"></div>
+            </div>
+        </div>
+    </div>
+    <div class="booth-text" id="booth-hint">Tap ticket to enter</div>
+</div>
+
+<script>
+    const btnGetTicket = document.getElementById('btn-get-ticket');
+    const ticketWrapper = document.getElementById('ticket-wrapper');
+    const theTicket = document.getElementById('the-ticket');
+    const ticketSlot = document.getElementById('ticket-slot');
+    const boothHint = document.getElementById('booth-hint');
+    const scanLaser = document.getElementById('scan-laser');
+    
+    // 初始化填入動態日期與票號
+    function initTicketData() {
+        const now = new Date();
+        document.getElementById('ticket-date').innerText = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}`;
+        document.getElementById('ticket-time').innerText = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+        document.getElementById('ticket-id').innerText = Math.floor(100000 + Math.random() * 900000);
+    }
+
+    // 1. 點擊「GET TICKET」，吐出門票
+    btnGetTicket.addEventListener('click', () => {
+        // 手機震動回饋 (如果裝置支援)
+        if (navigator.vibrate) navigator.vibrate([20, 50, 20]); 
+        
+        // 隱藏按鈕，吐票口亮紅光
+        gsap.to(btnGetTicket, { opacity: 0, y: 20, duration: 0.4, pointerEvents: 'none' });
+        ticketSlot.classList.add('active');
+
+        // 控制 clip-path 實現紙張被「印/吐出來」的動畫
+        gsap.fromTo(ticketWrapper, 
+            { clipPath: "inset(0 0 100% 0)", y: -50 }, 
+            { clipPath: "inset(0 0 0% 0)", y: 0, duration: 2, ease: "power2.inOut", delay: 0.3,
+              onUpdate: () => {
+                  // 吐票期間的細微震動感
+                  if(Math.random() > 0.8 && navigator.vibrate) navigator.vibrate(10);
+              },
+              onComplete: () => {
+                  ticketSlot.classList.remove('active'); // 關閉紅光
+                  
+                  // 在門票出來後才顯示「點擊進入」提示，並使用 GSAP 賦予呼吸燈效果
+                  gsap.to(boothHint, { 
+                      opacity: 1, 
+                      duration: 1, 
+                      onComplete: () => {
+                          gsap.to(boothHint, { opacity: 0.3, duration: 1, yoyo: true, repeat: -1, ease: "sine.inOut" });
+                      }
+                  }); 
+                  
+                  initTicketHover(); // 啟用 3D 懸浮互動
+              }
+            }
+        );
+    });
+
+    // 門票的 3D 傾斜懸浮互動
+    function initTicketHover() {
+        theTicket.addEventListener('mousemove', (e) => {
+            const rect = theTicket.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width - 0.5;
+            const y = (e.clientY - rect.top) / rect.height - 0.5;
+            gsap.to(theTicket, { rotateY: x * 20, rotateX: -y * 20, duration: 0.4, ease: 'power1.out' });
+        });
+        theTicket.addEventListener('mouseleave', () => {
+            gsap.to(theTicket, { rotateY: 0, rotateX: 0, duration: 0.8, ease: 'elastic.out(1, 0.3)' });
+        });
+    }
+
+    // 2. 點擊門票，進行「雷射檢票」並跳轉
+    theTicket.addEventListener('click', () => {
+        if (navigator.vibrate) navigator.vibrate(50);
+        
+        // 停止提示文字動畫並隱藏
+        gsap.killTweensOf(boothHint);
+        boothHint.style.display = 'none';
+        
+        // 鎖定票券位置，防止 3D 傾斜干擾動畫
+        theTicket.style.pointerEvents = 'none';
+        gsap.to(theTicket, { rotateY: 0, rotateX: 0, duration: 0.3 });
+
+        // 雷射光浮現並往下掃描
+        gsap.to(scanLaser, { opacity: 1, duration: 0.2 });
+        gsap.to(scanLaser, { y: 350, duration: 1, ease: "linear", onComplete: () => {
+            gsap.to(scanLaser, { opacity: 0, duration: 0.2 }); // 雷射光消失
+            
+            // 門票向前放大並淡入黑暗中
+            gsap.to(theTicket, { scale: 1.5, opacity: 0, duration: 0.8, ease: "power2.in", delay: 0.2 });
+            
+            // 整個場景淡出至全黑
+            gsap.to('#ticket-booth', { opacity: 0, duration: 1, delay: 0.5, onComplete: () => {
+                
+                // 動畫結束，正式跳轉到主展覽網頁 (index2.html)
+                // 這裡的跳轉因為背景已經全黑，所以視覺上會非常無縫
+                window.location.href = 'index2.html';
+                
+            }});
+        }});
+    });
+
+    // 初始化頁面
+    window.onload = () => {
+        initTicketData();
+    };
+</script>
+</body>
+</html>
