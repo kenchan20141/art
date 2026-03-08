@@ -146,6 +146,9 @@
 </head>
 <body>
 
+<!-- 預載音效 -->
+<audio id="scan-audio" src="門票.mp3" preload="auto"></audio>
+
 <!-- 雜訊質感層 -->
 <div class="noise-overlay"></div>
 
@@ -187,6 +190,7 @@
     const ticketSlot = document.getElementById('ticket-slot');
     const boothHint = document.getElementById('booth-hint');
     const scanLaser = document.getElementById('scan-laser');
+    const scanAudio = document.getElementById('scan-audio'); // 取得音效元素
     
     // 初始化填入動態日期與票號
     function initTicketData() {
@@ -246,7 +250,12 @@
 
     // 2. 點擊門票，進行「雷射檢票」並跳轉
     theTicket.addEventListener('click', () => {
-        if (navigator.vibrate) navigator.vibrate(50);
+        // === 加入震動 30 與音效 ===
+        if (navigator.vibrate) navigator.vibrate(30);
+        if (scanAudio) {
+            scanAudio.currentTime = 0; // 確保每次點擊都從頭播放
+            scanAudio.play().catch(e => console.log('音效播放被阻擋:', e));
+        }
         
         // 停止提示文字動畫並隱藏
         gsap.killTweensOf(boothHint);
