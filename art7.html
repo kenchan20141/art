@@ -82,7 +82,7 @@
         w = canvas.width = window.innerWidth;
         h = canvas.height = window.innerHeight;
         
-        neurons = [];
+        neurons =[];
         dataStreams =[];
         cracks =[];
 
@@ -113,18 +113,18 @@
         if (isDead) return;
         isAIActive = true; 
 
-        // 觸發震動（大幅減弱實體震動幅度與頻率）
+        // 觸發震動（增強實體震動幅度與頻率）
         if (navigator.vibrate) {
             // 清除之前的震動
             if (vibrationInterval) clearInterval(vibrationInterval); 
             
-            // 單次微震動 15ms (原本為 35ms)
-            navigator.vibrate(15); 
+            // 單次震動時間加長至 50ms 增加震幅感
+            navigator.vibrate(50); 
             
-            // 拉長間隔至 120ms (原本為 50ms)
+            // 間隔縮短至 80ms
             vibrationInterval = setInterval(() => {
-                navigator.vibrate(15);
-            }, 120); 
+                navigator.vibrate(50);
+            }, 80); 
         }
     }
 
