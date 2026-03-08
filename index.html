@@ -936,10 +936,16 @@
         specialPaper16.classList.remove('show');
     }
 
-    // 點擊「賞析 Read」按鈕的邏輯分流
+   // 點擊「賞析 Read」按鈕的邏輯分流
     const btnInfo = document.getElementById('btn-info');
     btnInfo.addEventListener('click', (e) => {
         e.stopPropagation(); 
+        
+        // 👇 新增這三行，手動觸發震動
+        if (navigator.vibrate) {
+            navigator.vibrate(30); 
+        }
+
         if (currentViewingId === 16) {
             // 是 ART 16，彈出信紙
             specialPaper16.classList.toggle('show');
@@ -990,7 +996,7 @@
         if (clickable) {
             // 檢查瀏覽器與裝置是否支援震動 API
             if (navigator.vibrate) {
-                navigator.vibrate(20); // 觸發 15 毫秒的短促微震動，模擬高級實體按鍵感
+                navigator.vibrate(30); // 觸發 15 毫秒的短促微震動，模擬高級實體按鍵感
             }
         }
     });
