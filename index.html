@@ -356,6 +356,45 @@
     .art12-stack-bar:nth-child(4) { left: 43%; animation-delay: 0.2s; } .art12-stack-bar:nth-child(5) { left: 53%; animation-delay: 1.2s; }
     @keyframes art12DropAnim { 0% { top: 0; opacity: 1; transform: translateX(0); } 20% { transform: translateX(5px); } 40% { transform: translateX(-5px); } 60% { top: 65%; opacity: 1; } 61% { opacity: 0; } 100% { opacity: 0; } }
     @keyframes art12StackAnim { 0% { height: 0; background: #444; } 80% { height: 60%; background: #666; } 90%, 100% { height: 66%; background: #d23838; box-shadow: 0 0 15px #d23838; } }
+
+
+
+
+
+/* --- 新增：NO.13 預覽圖 CSS --- */
+    .preview-art13 { position: absolute; inset: 0; background: #050508; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .art13-center { width: 16px; height: 16px; border-radius: 50%; animation: a13-core 6s infinite; z-index: 2; }
+    .art13-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; animation: a13-dot 6s infinite; }
+    .art13-line { position: absolute; height: 2px; transform-origin: left center; animation: a13-line 6s infinite; }
+    
+    @keyframes a13-core {
+        0%, 45% { box-shadow: 0 0 15px #d23838; border: 2px solid #d23838; background: #222; }
+        50%, 100% { box-shadow: 0 0 20px #fff; border: 2px solid #fff; background: #fff; }
+    }
+    @keyframes a13-dot {
+        0% { transform: translateX(60px); background: #555; }
+        20% { transform: translateX(10px); background: #d23838; opacity: 1; }
+        25%, 49% { transform: translateX(10px); opacity: 0; }
+        50% { transform: translateX(-60px); background: #555; opacity: 1; }
+        70%, 100% { transform: translateX(-60px); background: #88ccff; box-shadow: 0 0 10px #88ccff; opacity: 1; }
+    }
+    @keyframes a13-line {
+        0%, 49% { opacity: 0; width: 0; background: #d23838; }
+        50%, 65% { opacity: 0; width: 0; }
+        70%, 100% { opacity: 0.6; width: 45px; background: #88ccff; transform: translate(-10px, 0) rotate(180deg); }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
 </style>
 </head>
 <body>
@@ -411,7 +450,18 @@
         { id: 9, url: "art9.html", num: "NO. 09", title: "循規與破局", subtitle: "慣性思維的迷宮與主動出擊的智慧", previewHTML: `<div class="preview-art9"><div class="art9-maze"></div><div class="art9-p1"></div><div class="art9-p2"></div><div class="art9-burst"></div></div>`, analysis: "這件互動裝置直擊了學習過程中常見的「思維僵化」。畫面上雖然提供了方向鍵，誘使你操控藍球乖乖走完迷宮；但如果你只懂得循規蹈矩地按部就班，最終往往會耗盡精力，淪為流水線上不知變通的灰色方塊。\n\n真正的隱藏破局之法，在於無視那些預設的按鍵——請直接用滑鼠或手指按住代表目標的「紅球」，將它拖曳到藍球身邊。當你跳出既定規則，僵化的迷宮框架便會瞬間粉碎，化為衝破維度的絢麗星辰。" },
         { id: 10, url: "art10.html", num: "NO. 10", title: "無效的用功", subtitle: "用功不是為了感動自己", previewHTML: `<div class="preview-art10"><div class="art10-core-p"></div><div class="art10-node-p"></div><div class="art10-line-p"></div></div>`, analysis: "這件互動裝置揭示了學習與工作中關於努力的真相。如果你試圖直接轉動輪子，你會發現阻力巨大，車輪會震動發紅，最終甚至會石化卡死——這象徵著盲目刷題與死記硬背的末路。唯有先將散落的知識節點與作為發亮的動力源接通，建立起完整的能量網絡，車輪才能在幾乎不費力的情況下自動運轉。" },
         { id: 11, url: "art11.html", num: "NO. 11", title: "定靜的試煉", subtitle: "在躁動世界重拾閱讀本能", previewHTML: `<div class="preview-art11"><div class="art11-text-beam"></div><div class="art11-popup"></div><div class="art11-popup"></div></div>`, analysis: "這件作品是一場關於專注力的數位修行。畫面上引用了《大學》的經典篇章，但周圍不斷彈出的社群通知試圖將你的視線拉走。機制極其殘酷卻寫實：滑鼠的每一次游移都代表心智的動搖，導致文字模糊難辨；唯有保持滑鼠與身體的絕對靜止，拒絕所有數位誘惑，清晰的真理才會浮現。" },
-        { id: 12, url: "art12.html", num: "NO. 12", title: "控制的幻覺", subtitle: "努力的落點與命運的紅線", previewHTML: `<div class="preview-art12"><div class="art12-limit-line"></div><div class="art12-ball-drop"></div><div class="art12-ball-drop"></div><div class="art12-stack-bar"></div><div class="art12-stack-bar"></div></div>`, analysis: "這件作品以釘板的機率遊戲，辯證了「努力」的真實價值。雖然落下的路徑充滿隨機變數，但你投入的蓄力越深，光球便越有機會落入高分的區間——這證明努力並非徒勞。作品試圖傳達的，還有一種在積極進取後的釋懷：我們能完全掌控的只有手中的力度，至於結果的些許偏差，我們只能學會優雅地接受。" }
+        { id: 12, url: "art12.html", num: "NO. 12", title: "控制的幻覺", subtitle: "努力的落點與命運的紅線", previewHTML: `<div class="preview-art12"><div class="art12-limit-line"></div><div class="art12-ball-drop"></div><div class="art12-ball-drop"></div><div class="art12-stack-bar"></div><div class="art12-stack-bar"></div></div>`, analysis: "這件作品以釘板的機率遊戲，辯證了「努力」的真實價值。雖然落下的路徑充滿隨機變數，但你投入的蓄力越深，光球便越有機會落入高分的區間——這證明努力並非徒勞。作品試圖傳達的，還有一種在積極進取後的釋懷：我們能完全掌控的只有手中的力度，至於結果的些許偏差，我們只能學會優雅地接受。" },
+        
+        // ▼ 新增這一段 NO.13 ▼
+        { 
+            id: 13, 
+            url: "art13.html", 
+            num: "NO. 13", 
+            title: "佔有與陪伴", 
+            subtitle: "執念的枷鎖與共鳴的自由", 
+            previewHTML: `<div class="preview-art13"><div class="art13-line"></div><div class="art13-dot"></div><div class="art13-center"></div></div>`, 
+           analysis: "這件互動裝置深刻剖析了人際關係的本質，以及我們面對相聚與離別的態度。當我們懷抱控制慾，試圖強行捕捉並綁定周遭的個體時，換來的往往是恐懼、逃離，以及過度拉扯所留下的暗色傷疤。\n\n此外，作品的深意更在於揭示一個無奈卻美麗的生命常態：無論是朋友、戀人還是家人，每個人的人生軌跡都有屬於自己的「終點站」。他們注定只會在生命的某個階段與我們並肩同行，離別是必然的宿命。\n\n當我們放下緊抓不放的執念，以共鳴取代佔有，便能看見彼此交會時綻放的溫暖光芒。真正的愛與成熟，是懂得在他們到站離去時不再強留；學會坦然接受緣分的聚散，目送他們化作璀璨的光點，優雅而無憾地告別。"
+        }
     ];
 
     const ITEMS_PER_SECTOR = 4;
