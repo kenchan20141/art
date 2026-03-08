@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<!-- 強制關閉瀏覽器的翻譯功能，確保流暢度與沉浸感，防止手機無故彈出翻譯視窗 -->
+<html lang="en" translate="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="google" content="notranslate">
+    <title>The Stroke of Life</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #030303; 
+            overflow: hidden;
+            cursor: none; /* 隱藏游標，讓用家化身為無形的畫筆 */
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            touch-action: none; /* 禁用預設手勢，防止卡頓與畫面滾動 */
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        canvas {
+            display: block;
+            opacity: 0;
+            transition: opacity 1.5s ease-in; 
+        }
+        
+        /* 極簡 LOADING UI */
+        #loader {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 300;
+            letter-spacing: 12px; 
+            text-transform: uppercase;
+            pointer-events: none;
+            transition: opacity 1s ease-out, transform 1.5s ease-out;
+            z-index: 100;
+        }
+        #loader span { display: inline-block; animation: text-breathe 2s ease-in-out infinite alternate; }
+        #loader.fade-out { opacity: 0; transform: translate(-50%, -50%) scale(1.1); letter-spacing: 20px; }
+
+        @keyframes text-breathe {
+            0% { opacity: 0.2; }
+            100% { opacity: 0.8; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3)); }
+        }
+
+        /* 準備完成的「無文字起點暗示」 */
+        #start-hint {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            opacity: 0; /* 預設隱藏，載入完顯示 */
+            transition: opacity 0.5s;
+            z-index: 50;
+        }
+        .hint-dot {
+            width: 4px; height: 4px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 10px 2px rgba(255,255,255,0.8);
+        }
+        .hint-ripple {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            border: 1px solid rgba(255,255,255,0.5);
+            border-radius: 50%;
+            animation: pulse-ring 2.5s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+        }
+        @keyframes pulse-ring {
+            0% { width: 0px; height: 0px; opacity: 1; }
+            100% { width: 60px; height: 60px; opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- LOADING UI -->
+<div id="loader"><span>Loading</span></div>
+
+<!-- 可以開始的暗示 (漣漪) -->
+<div id="start-hint">
+    <div class="hint-dot"></div>
+    <div class="hint-ripple"></div>
+</div>
+
+<!-- 主畫布 -->
+<canvas id="canvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const loader = document.getElementById('loader');
+    const startHint = document.getElementById('start-hint');
+
+    let w, h;
+    let totalDist = 0;
+    const MAX_DIST = 10000; 
+    
+    // 初始鏡頭放大 4.5 倍 (視野狹窄，處於微觀狀態)
+    let camera = { x: 0, y: 0, zoom: 4.5, targetZoom: 4.5 };
+    let mouse = { x: 0, y: 0, lastX: null, lastY: null, worldX: 0, worldY: 0, active: false };
+    let brushSize;
+
+    // 離屏畫布設置
+    let paintedCanvas = document.createElement('canvas'); // 存放底圖+油畫筆觸
+    let maskCanvas = document.createElement('canvas');    // 存放使用者的軌跡遮罩
+    let maskCtx = maskCanvas.getContext('2d');
+    let renderCanvas = document.createElement('canvas');  // 存放遮罩與油畫合成後的結果
+    let renderCtx = renderCanvas.getContext('2d'); // 這裡必須保留透明度，不可加 { alpha: false }
+
+    // 星塵特效 (提供滑動時的觸覺與視覺反饋)
+    let sparks =[];
+    class Spark {
+        constructor(x, y) {
+            this.x = x; this.y = y;
+            this.vx = (Math.random() - 0.5) * 3;
+            this.vy = (Math.random() - 0.5) * 3 - 0.5;
+            this.life = 1.0;
+            this.size = Math.random() * 2.5 + 0.5;
+            this.color = `hsla(${Math.random() * 40 + 30}, 100%, 75%, `; 
+        }
+        update() { this.x += this.vx; this.y += this.vy; this.life -= 0.02; }
+        draw(context) {
+            context.fillStyle = this.color + Math.max(0, this.life) + ')';
+            context.beginPath(); context.arc(this.x, this.y, this.size, 0, Math.PI * 2); context.fill();
+        }
+    }
+
+    // ----------------------
+    // 1. 半相片半油畫：混合渲染技術
+    // ----------------------
+    function generatePainting(img, imgData, width, height) {
+        let pCtx = paintedCanvas.getContext('2d', { alpha: false });
+        
+        // 步驟 A：先畫上原圖作為基底 (保證能看懂原本照片的輪廓)
+        pCtx.drawImage(img, 0, 0, width, height);
+        
+        // 步驟 B：在原圖上疊加印象派油彩，創造出「不完美的筆觸」意象
+        pCtx.filter = 'saturate(1.2) contrast(1.1)';
+        pCtx.globalAlpha = 0.65; // 半透明混合，讓相片底圖透出來
+        
+        let step = Math.max(5, Math.floor(Math.min(width, height) / 120)); 
+        let strokeWidth = step * 1.5;
+        let strokeLength = step * 2.2;
+        
+        pCtx.lineWidth = strokeWidth;
+        pCtx.lineCap = 'round';
+
+        for (let y = 0; y < height; y += step * 1.5) {
+            for (let x = 0; x < width; x += step * 1.5) {
+                let rx = x + (Math.random() - 0.5) * step;
+                let ry = y + (Math.random() - 0.5) * step;
+                
+                let sx = Math.max(0, Math.min(width - 1, Math.floor(rx)));
+                let sy = Math.max(0, Math.min(height - 1, Math.floor(ry)));
+                
+                let i = (sy * width + sx) * 4;
+                let r = imgData[i], g = imgData[i+1], b = imgData[i+2];
+
+                pCtx.strokeStyle = `rgb(${r},${g},${b})`;
+                pCtx.save();
+                pCtx.translate(rx, ry);
+                pCtx.rotate((Math.random() - 0.5) * 1.2); 
+                
+                pCtx.beginPath();
+                pCtx.moveTo(-strokeLength / 2, 0);
+                pCtx.lineTo(strokeLength / 2, 0);
+                pCtx.stroke();
+                pCtx.restore();
+            }
+        }
+        pCtx.globalAlpha = 1.0; 
+    }
+
+    // ----------------------
+    // 2. 初始化與載入 Picsum 圖片
+    // ----------------------
+    function init() {
+        w = window.innerWidth; h = window.innerHeight;
+        canvas.width = paintedCanvas.width = maskCanvas.width = renderCanvas.width = w;
+        canvas.height = paintedCanvas.height = maskCanvas.height = renderCanvas.height = h;
+        
+        camera.x = w / 2; camera.y = h / 2;
+        brushSize = Math.min(w, h) * 0.12; 
+        
+        // 設定遮罩畫筆
+        maskCtx.lineCap = maskCtx.lineJoin = 'round';
+        maskCtx.lineWidth = brushSize;
+        maskCtx.shadowBlur = brushSize * 0.4;
+        maskCtx.shadowColor = 'white';
+        maskCtx.strokeStyle = 'white';
+
+        // 改回 Picsum Photos API (完全隨機的圖片)
+        const randomSeed = Math.floor(Math.random() * 99999);
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.src = `https://picsum.photos/seed/${randomSeed}/${w}/${h}`;
+
+        img.onload = () => {
+            setTimeout(() => {
+                let tempCanvas = document.createElement('canvas');
+                tempCanvas.width = w; tempCanvas.height = h;
+                let tCtx = tempCanvas.getContext('2d');
+                tCtx.drawImage(img, 0, 0, w, h);
+                let imgData = tCtx.getImageData(0, 0, w, h).data;
+                
+                // 傳入 img 作為基底並進行渲染
+                generatePainting(img, imgData, w, h);
+                
+                // 動畫過渡
+                loader.classList.add('fade-out');
+                setTimeout(() => { 
+                    loader.style.display = 'none'; 
+                    startHint.style.opacity = 1; // 顯示準備完成的暗示漣漪
+                }, 1500);
+                
+                canvas.style.opacity = 1;
+                animate();
+            }, 50);
+        };
+    }
+
+    // ----------------------
+    // 3. 互動邏輯 (軌跡與反饋)
+    // ----------------------
+    function handleInput(e) {
+        if (!mouse.active) startHint.style.opacity = 0; // 用家一動作，暗示即消散
+
+        let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        // 計算滑鼠在相機縮放後的世界座標
+        mouse.worldX = (clientX - w / 2) / camera.zoom + camera.x;
+        mouse.worldY = (clientY - h / 2) / camera.zoom + camera.y;
+
+        if (!mouse.active) {
+            mouse.active = true;
+            mouse.lastX = mouse.worldX;
+            mouse.lastY = mouse.worldY;
+            return;
+        }
+
+        let dx = mouse.worldX - mouse.lastX;
+        let dy = mouse.worldY - mouse.lastY;
+        totalDist += Math.sqrt(dx*dx + dy*dy); // 累積閱歷
+
+        // 畫出遮罩軌跡 (照亮黑幕)
+        maskCtx.beginPath();
+        maskCtx.moveTo(mouse.lastX, mouse.lastY);
+        maskCtx.lineTo(mouse.worldX, mouse.worldY);
+        maskCtx.stroke();
+
+        // 產生即時反饋的星塵
+        for(let i = 0; i < 2; i++) {
+            let angle = Math.random() * Math.PI * 2;
+            let radius = Math.random() * (brushSize / 4);
+            sparks.push(new Spark(mouse.worldX + Math.cos(angle) * radius, mouse.worldY + Math.sin(angle) * radius));
+        }
+
+        mouse.lastX = mouse.worldX;
+        mouse.lastY = mouse.worldY;
+
+        // 縮放鏡頭 (走得越遠，鏡頭拉得越遠看見全貌)
+        let progress = Math.min(1, totalDist / MAX_DIST);
+        camera.targetZoom = 4.5 - (progress * 3.5); 
+    }
+
+    function handleEnd() { mouse.active = false; }
+
+    window.addEventListener('mousemove', handleInput);
+    window.addEventListener('touchmove', handleInput, {passive: false}); // 防止手機預設滑動
+    window.addEventListener('mouseup', handleEnd);
+    window.addEventListener('touchend', handleEnd);
+    
+    // 螢幕旋轉防呆：只在寬度改變明顯時才重新載入
+    let initialW = window.innerWidth;
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        if (Math.abs(window.innerWidth - initialW) > 50) {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => location.reload(), 300);
+        }
+    });
+
+    // ----------------------
+    // 4. 合成渲染 (含防邊界走失 Clamp)
+    // ----------------------
+    function animate() {
+        camera.zoom += (camera.targetZoom - camera.zoom) * 0.05;
+
+        // --- 相機邊界鎖定 (Clamp) ---
+        let viewHalfW = w / (2 * camera.zoom);
+        let viewHalfH = h / (2 * camera.zoom);
+        
+        let centerWeight = Math.max(0, (4.5 - camera.zoom) / 3.5); 
+        let targetX = mouse.active ? mouse.worldX : w/2;
+        let targetY = mouse.active ? mouse.worldY : h/2;
+
+        let finalTargetX = targetX * (1 - centerWeight) + (w/2) * centerWeight;
+        let finalTargetY = targetY * (1 - centerWeight) + (h/2) * centerWeight;
+
+        // 確保相機絕對不會越界，讓用家的每一筆都落在畫布內
+        if (viewHalfW <= w - viewHalfW) finalTargetX = Math.max(viewHalfW, Math.min(w - viewHalfW, finalTargetX));
+        else finalTargetX = w / 2;
+        
+        if (viewHalfH <= h - viewHalfH) finalTargetY = Math.max(viewHalfH, Math.min(h - viewHalfH, finalTargetY));
+        else finalTargetY = h / 2;
+
+        camera.x += (finalTargetX - camera.x) * 0.08;
+        camera.y += (finalTargetY - camera.y) * 0.08;
+
+        // 黎明機制 (視野宏觀時，緩慢點亮全圖的黑暗)
+        if (camera.zoom < 2.5) {
+            maskCtx.fillStyle = 'rgba(255, 255, 255, 0.003)'; 
+            maskCtx.fillRect(0, 0, w, h);
+        }
+
+        // --- 核心遮罩合成邏輯 ---
+        renderCtx.clearRect(0, 0, w, h);
+        renderCtx.drawImage(maskCanvas, 0, 0); // 1. 畫出純白軌跡
+        renderCtx.globalCompositeOperation = 'source-in'; 
+        renderCtx.drawImage(paintedCanvas, 0, 0); // 2. 將油畫填入軌跡
+        renderCtx.globalCompositeOperation = 'source-over';
+
+        // --- 最終畫面輸出 ---
+        ctx.fillStyle = '#030303'; // 底層深淵
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.save();
+        ctx.translate(w/2, h/2);
+        ctx.scale(camera.zoom, camera.zoom);
+        ctx.translate(-camera.x, -camera.y);
+        
+        // 畫出已經裁切好的油畫
+        ctx.drawImage(renderCanvas, 0, 0);
+
+        // 即時光暈與星塵 (照亮當下)
+        if (mouse.active) {
+            let gradient = ctx.createRadialGradient(mouse.worldX, mouse.worldY, 0, mouse.worldX, mouse.worldY, brushSize / 1.5);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(mouse.worldX, mouse.worldY, brushSize / 1.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        for (let i = sparks.length - 1; i >= 0; i--) {
+            sparks[i].update(); sparks[i].draw(ctx);
+            if (sparks[i].life <= 0) sparks.splice(i, 1);
+        }
+
+        ctx.restore();
+        requestAnimationFrame(animate);
+    }
+
+    // 啟動藝術裝置
+    init();
+
+</script>
+</body>
+</html>
