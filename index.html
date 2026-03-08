@@ -491,7 +491,7 @@
         margin-bottom: 0;
     }
 
-  /* ================= ART 16 專屬：信紙賞析介面 (深色夜光版) ================= */
+ /* ================= ART 16 專屬：信紙賞析介面 (深色夜光版) ================= */
     .special-analysis-paper {
         position: absolute;
         top: 50%; left: 50%;
@@ -499,7 +499,6 @@
         width: 85vw; max-width: 600px;
         height: 80vh; max-height: 850px;
         
-        /* 【關鍵修改】改為深邃的深色毛玻璃，將「實體白紙」的專利還給藝術品 */
         background-color: rgba(22, 20, 18, 0.75); 
         backdrop-filter: blur(25px); 
         -webkit-backdrop-filter: blur(25px);
@@ -507,7 +506,6 @@
         border-radius: 12px;
         box-shadow: 0 30px 60px rgba(0,0,0,0.9), inset 0 0 30px rgba(0, 0, 0, 0.5);
         
-        /* 隱約的光澤對摺線 */
         background-image: linear-gradient(to right, transparent 49.5%, rgba(255,255,255,0.03) 50%, transparent 50.5%);
         opacity: 0; pointer-events: none;
         transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
@@ -526,14 +524,12 @@
         overflow-y: auto;
         padding: 0 5%; 
         
-        /* 【關鍵修改】字體改為淡金色/羊皮紙色，宛如黑夜中透出的微光 */
         color: #d8cbb8; 
-        font-size: 16px;
+        /* 移除寫死的 font-size: 16px; 交給子元素動態計算 */
         line-height: 48px; /* 鎖定行高 */
         text-align: center; 
         text-shadow: 0 0 10px rgba(0,0,0,0.5);
         
-        /* 線條改為極淡的微光引導線 */
         background-image: 
             linear-gradient(to bottom, rgba(216, 203, 184, 0.25) 1px, transparent 1px),
             repeating-linear-gradient(to bottom, transparent, transparent 47px, rgba(216, 203, 184, 0.06) 47px, rgba(216, 203, 184, 0.06) 48px);
@@ -545,17 +541,34 @@
     .special-paper-content p {
         margin: 0;
         padding-bottom: 48px; 
+        /* 【關鍵修改】動態適應寬度，保證單行排完並最大化文字 */
+        font-size: min(16px, 3.6vw); 
+        white-space: nowrap; /* 強制不發生自動折行，只在 <br> 處斷行 */
     }
 
     .special-paper-content p:last-child {
         padding-bottom: 48px;
     }
 
-    /* 深色介面專屬的優雅滾動條 */
     .special-paper-content::-webkit-scrollbar { width: 4px; }
     .special-paper-content::-webkit-scrollbar-track { background: transparent; }
     .special-paper-content::-webkit-scrollbar-thumb { background: rgba(216, 203, 184, 0.2); border-radius: 4px; }
 
+    /* 【新增】手機版信紙適配：擴展容器寬度，爭取讓單行文字可以放到最大 */
+    @media (max-width: 768px) {
+        .special-analysis-paper {
+            width: 94vw; 
+            height: 85vh; 
+        }
+        .special-paper-content {
+            left: 3%; right: 3%; 
+            padding: 0 3%;
+        }
+        .special-paper-content p {
+            /* 在手機極限寬度下精準取得最大字體 (3.8 * 22字 = 83.6vw < 總寬) */
+            font-size: min(16px, 3.8vw); 
+        }
+    }
     
 </style>
 </head>
