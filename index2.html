@@ -576,6 +576,59 @@
             font-size: min(16px, 3.8vw); 
         }
     }
+
+    /* ================= 文學推薦區塊 (ART 1-15) ================= */
+    .lit-recommendation {
+        margin-top: 35px;
+        padding-top: 25px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08); /* 頂部極細分割線 */
+        position: relative;
+    }
+    .lit-title {
+        font-family: var(--font-serif);
+        font-size: 0.85rem;
+        color: var(--accent);
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+        font-weight: 600;
+    }
+    .lit-content {
+        position: relative;
+        padding-left: 15px;
+        border-left: 2px solid rgba(210, 56, 56, 0.3); /* 左側微光紅線 */
+    }
+    .lit-content p {
+        font-size: 0.85rem !important; /* 比正文小一點，展現層次 */
+        color: #999 !important;
+        line-height: 1.7 !important;
+        font-weight: 300;
+    }
+    .lit-content strong {
+        color: #fff; /* 書名與作者高亮 */
+        font-weight: 400;
+        letter-spacing: 1px;
+    }
+ 
+    /* ================= ART 16 專屬信紙附言 (Postscript) ================= */
+    .art16-postscript {
+        margin-top: 60px;
+        padding-top: 30px;
+        border-top: 1px dashed rgba(216, 203, 184, 0.3);
+        text-align: right; /* 附言靠右，符合信件格式 */
+        font-family: 'Noto Serif TC', 'Songti TC', 'MingLiU', serif;
+    }
+    .art16-postscript p {
+        font-size: min(14px, 3.2vw) !important; /* 略小於信件正文 */
+        color: rgba(216, 203, 184, 0.7) !important; /* 顏色比正文更淡，若隱若現 */
+        line-height: 2 !important;
+        padding-bottom: 0 !important;
+        text-shadow: none !important;
+    }
+    .art16-postscript strong {
+        color: rgba(216, 203, 184, 0.9);
+        letter-spacing: 2px;
+    }
     
 </style>
 </head>
@@ -635,22 +688,147 @@
 
 <script>
     // 1. Data Source (Original Chinese)
-    const originalExhibits = [
-        { id: 1, url: "art1.html", num: "NO. 01", title: "失焦矩陣", subtitle: "社交媒體與注意力的瓦解", previewHTML: `<div class="preview-art1">${'<div></div>'.repeat(30)}</div>`, analysis: "這件互動裝置具象化了數位時代的專注力危機。游標的每一次移動與點擊，都如同我們在社交媒體上的無心滑動，看似微不足道，卻不斷累積著混亂的變數。當外在的刺激超過臨界點，原本整齊的認知矩陣將徹底崩解。作品靜靜拋出一個提問：在碎片化資訊的洪流中，我們該如何守護內在的秩序。" },
-        { id: 2, url: "art2.html", num: "NO. 02", title: "重構與歸類", subtitle: "從碎片堆疊到框架思考", previewHTML: `<div class="preview-art2"><div class="art2-frame"><div class="art2-block"></div></div></div>`, analysis: "學習的過程往往面臨兩種截然不同的路徑。盲目堆積零散的細節，如同在沒有地基的狀態下築起高塔，隨時可能因微小的失衡而全面崩潰。相反地，建立宏觀的框架，則是先為知識劃定清晰的網格，讓繁雜的碎片能夠精準歸位。這組對比裝置揭示了系統化思考的價值：唯有先看見整體的輪廓，局部的細節才能找到安放的座標。" },
-        { id: 3, url: "art3.html", num: "NO. 03", title: "徒勞的完美", subtitle: "完美主義的無盡迴圈與崩潰", previewHTML: `<div class="preview-art3">${'<div class="p-dot"></div>'.repeat(16)}</div>`, analysis: "這件互動裝置精準地諷刺了學生在學習過程中對「完美」的過度執著。畫布上微小的瑕疵總誘使我們去修正，但如同現實中的「打地鼠」，過度苛求細節的代價，往往是引發更多預料之外的混亂。當修復的動作本身成為破壞整體結構的根源，作品揭示了一個殘酷的悖論：無止盡的完美主義，終究是一場徒勞無功的自我消耗。有時候，接受適度的不完美，才是維持系統運作的正解。" },
-        { id: 4, url: "art4.html", num: "NO. 04", title: "算計與詩篇", subtitle: "即時成就感與延遲的靈魂", previewHTML: `<div class="preview-art4"><div class="art4-poem">用數字填滿留白，連靈魂也無法閱讀。</div><div class="art4-math">+100</div><div class="art4-math">8923</div><div class="art4-ring"></div></div>`, analysis: "這件作品諷刺了當代學生過度追求量化成績與「即時滿足」的現象。畫面上不斷彈出的數字，象徵著算計與速成的成就感，你可以輕易透過點擊與滑動獲得分數；但代價是，代表內涵的文學詩篇會逐漸被亂碼吞噬。語文的學習沒有捷徑，它需要「延遲滿足」——唯有當你克制住追逐分數的衝動，在空白處耐心長按停留，拒絕干擾，文字真正的意義與美麗才會向你顯現。" },
-        { id: 5, url: "art5.html", num: "NO. 05", title: "Absorb？Apply？", subtitle: "無用之用", previewHTML: `<div class="preview-art5"><div class="art5-aura"></div><div class="art5-laser"></div><div class="art5-laser"></div><div class="art5-laser"></div><div class="art5-core"></div></div>`, analysis: "這件互動裝置以浩瀚宇宙為隱喻，演繹了我們面對深層知識時兩種截然不同的態度。作品揭示了學習的真相：無用的知識往往才是滋養靈魂的深邃養分，而過度追求即時變現的學習，終將導致精神世界的貧瘠與荒蕪。" },
-        { id: 6, url: "art6.html", num: "NO. 06", title: "軌跡與灰燼", subtitle: "急躁的代價與慢活的詩意", previewHTML: `<div class="preview-art6"><div class="art6-slow"></div><div class="art6-fast-container"><div class="art6-fast"></div></div></div>`, analysis: "這件互動裝置具象化了現代人急功近利的焦慮。當你急於求成、在畫布上快速拖曳時，留下的只有枯燥、脆弱且註定碎裂墜落的灰色線條；而當你願意慢下來，沉穩地感受當下的軌跡，畫面便會隨著時間流轉，綻放出絢麗的光彩與生命力。作品溫柔地提醒我們：唯有學會欣賞過程的緩慢，生活才會向我們展露它真實的美麗；急躁求來的結果，終究只是沒有根基、轉瞬即逝的灰燼。" },
-        { id: 7, url: "art7.html", num: "NO. 07", title: "靈魂代幣", subtitle: "效率的代價與思維的石化", previewHTML: `<div class="preview-art7"><div class="art7-link"></div><div class="art7-link"></div><div class="art7-face"></div></div>`, analysis: "這件互動裝置是對人工智慧時代的警世寓言。當我們沈迷於 AI 帶來的高效與便捷，大腦中負責深度連結的神經元卻在悄然斷裂。作品中，當你追求運算速度時，畫面會爆發出耀眼的光芒，但這光芒轉瞬即逝，隨之而來的是死寂的灰色與凝固的線條。這象徵著思維外包後的終局——我們獲得了完美的答案，卻失去了提問的靈魂，最終化為資訊洪流中一座座無法思考的石像。" },
-        { id: 8, url: "art8.html", num: "NO. 08", title: "點的狹隘", subtitle: "點、線、面與思維的維度", previewHTML: `<div class="preview-art8"><div class="art8-scene"><div class="art8-f"></div><div class="art8-p"></div><div class="art8-p"></div><div class="art8-p"></div><div class="art8-l" style="top:35%; left:45%; transform:rotate(60deg);"></div><div class="art8-l" style="top:55%; left:40%; transform:rotate(0deg);"></div><div class="art8-l" style="top:55%; left:60%; transform:rotate(-120deg);"></div></div></div>`, analysis: "這件互動裝置以極簡的幾何演變，諷刺了學生常將科目視為互不相干的孤島。在畫面左側，知識只是混沌、離散的點；當你主動介入，試圖尋找關聯，這些點才開始連成線，進而結成面，最終構建出完整的立體思維結構。唯有懂得觸類旁通，將不同學科的邏輯相互映射，我們才能突破平面的局限，看見知識全貌的立體之美。" },
-        { id: 9, url: "art9.html", num: "NO. 09", title: "循規與破局", subtitle: "慣性思維的迷宮與主動出擊的智慧", previewHTML: `<div class="preview-art9"><div class="art9-maze"></div><div class="art9-p1"></div><div class="art9-p2"></div><div class="art9-burst"></div></div>`, analysis: "這件互動裝置直擊了學習過程中常見的「思維僵化」。畫面上雖然提供了方向鍵，誘使你操控藍球乖乖走完迷宮；但如果你只懂得循規蹈矩地按部就班，最終往往會耗盡精力，淪為流水線上不知變通的灰色方塊。\n\n真正的隱藏破局之法，在於無視那些預設的按鍵——請直接用滑鼠或手指按住代表目標的「紅球」，將它拖曳到藍球身邊。當你跳出既定規則，僵化的迷宮框架便會瞬間粉碎，化為衝破維度的絢麗星辰。" },
-        { id: 10, url: "art10.html", num: "NO. 10", title: "無效的用功", subtitle: "用功不是為了感動自己", previewHTML: `<div class="preview-art10"><div class="art10-core-p"></div><div class="art10-node-p"></div><div class="art10-line-p"></div></div>`, analysis: "這件互動裝置揭示了學習與工作中關於努力的真相。如果你試圖直接轉動輪子，你會發現阻力巨大，車輪會震動發紅，最終甚至會石化卡死——這象徵著盲目刷題與死記硬背的末路。唯有先將散落的知識節點與作為發亮的動力源接通，建立起完整的能量網絡，車輪才能在幾乎不費力的情況下自動運轉。" },
-        { id: 11, url: "art11.html", num: "NO. 11", title: "定靜的試煉", subtitle: "在躁動世界重拾閱讀本能", previewHTML: `<div class="preview-art11"><div class="art11-text-beam"></div><div class="art11-popup"></div><div class="art11-popup"></div></div>`, analysis: "這件作品是一場關於專注力的數位修行。畫面上引用了《大學》的經典篇章，但周圍不斷彈出的社群通知試圖將你的視線拉走。機制極其殘酷卻寫實：滑鼠的每一次游移都代表心智的動搖，導致文字模糊難辨；唯有保持滑鼠與身體的絕對靜止，拒絕所有數位誘惑，清晰的真理才會浮現。" },
-        { id: 12, url: "art12.html", num: "NO. 12", title: "控制的幻覺", subtitle: "努力的落點與命運的紅線", previewHTML: `<div class="preview-art12"><div class="art12-limit-line"></div><div class="art12-ball-drop"></div><div class="art12-ball-drop"></div><div class="art12-stack-bar"></div><div class="art12-stack-bar"></div></div>`, analysis: "這件作品以釘板的機率遊戲，辯證了「努力」的真實價值。雖然落下的路徑充滿隨機變數，但你投入的蓄力越深，光球便越有機會落入高分的區間——這證明努力並非徒勞。作品試圖傳達的，還有一種在積極進取後的釋懷：我們能完全掌控的只有手中的力度，至於結果的些許偏差，我們只能學會優雅地接受。" },
-        { id: 13, url: "art13.html", num: "NO. 13", title: "旅伴", subtitle: "執念的枷鎖與共鳴的自由", previewHTML: `<div class="preview-art13"><div class="art13-line"></div><div class="art13-dot"></div><div class="art13-center"></div></div>`, analysis: "這件互動裝置深刻剖析了人際關係的本質，以及我們面對相聚與離別的態度。當我們懷抱控制慾，試圖強行捕捉並綁定周遭的個體時，換來的往往是恐懼、逃離，以及過度拉扯所留下的暗色傷疤。\n\n此外，作品的深意更在於揭示一個無奈卻美麗的生命常態：無論是朋友、戀人還是家人，每個人的人生軌跡都有屬於自己的「終點站」。他們注定只會在生命的某個階段與我們並肩同行，離別是必然的宿命。\n\n當我們放下緊抓不放的執念，以共鳴取代佔有，便能看見彼此交會時綻放的溫暖光芒。真正的愛與成熟，是懂得在他們到站離去時不再強留；學會坦然接受緣分的聚散，目送他們化作璀璨的光點，優雅而無憾地告別。" },
-        { id: 14, url: "art14.html", num: "NO. 14", title: "越界的互補", subtitle: "我們兩個人，並排在一起，看看這個落寞的人間。", previewHTML: `<div class="preview-art14"><div class="art14-c1"></div><div class="art14-c2"></div><div class="art14-clash-wave"></div></div>`, analysis: "這件裝置深刻剖析了親密關係中的「互補」迷思。畫面上兩個殘缺的幾何體，如同帶著各自創傷與缺陷的靈魂。當它們保持適當距離時，能在各自的軌道上平靜地散發出柔和的光芒；然而，一旦它們試圖越界，妄想用對方的存在來填補自己靈魂的缺口時，不僅無法完美契合，反而會引發劇烈的排斥與震盪，原本的光彩也會隨之被焦慮的血紅色吞噬。\n\n人生在世，誰都不完美，誰都無法真正「救贖」誰。與其病態地緊抓著一個同樣有缺陷的人來補自己的缺陷，不如學會帶著裂痕獨立旋轉。真正的愛，是我們承認各自的殘缺，留下呼吸的距離，卻依然能並肩同行。" },
-        // ▼▼▼ 以下是你需要新增的 ART 15 ▼▼▼
+     const originalExhibits = [
+        { 
+            id: 1, 
+            url: "art1.html", 
+            num: "NO. 01", 
+            title: "失焦矩陣", 
+            subtitle: "社交媒體與注意力的瓦解", 
+            previewHTML: `<div class="preview-art1">${'<div></div>'.repeat(30)}</div>`, 
+            analysis: "這件互動裝置具象化了數位時代的專注力危機。游標的每一次移動與點擊，都如同我們在社交媒體上的無心滑動，看似微不足道，卻不斷累積著混亂的變數。當外在的刺激超過臨界點，原本整齊的認知矩陣將徹底崩解。作品靜靜拋出一個提問：在碎片化資訊的洪流中，我們該如何守護內在的秩序。",
+            literature: `<p><strong>蔣勳《孤獨六講》</strong><br>蔣勳在書中一針見血地指出，現代人極度害怕寂寞，於是總急於在群體或網路中尋求連結，用無意義的喧嘩來填補空虛，結果卻失去了與自己內心對話的能力。這件作品恰好印證了這種焦慮：當我們盲目點擊、試圖抓住外界的每一個微小刺激時，內在的矩陣便會分崩離析。或許，我們都需要學會享受孤獨，在喧囂中為自己留下一方不被打擾的平靜。</p>`
+        },
+        { 
+            id: 2, 
+            url: "art2.html", 
+            num: "NO. 02", 
+            title: "重構與歸類", 
+            subtitle: "從碎片堆疊到框架思考", 
+            previewHTML: `<div class="preview-art2"><div class="art2-frame"><div class="art2-block"></div></div></div>`, 
+            analysis: "學習的過程往往面臨兩種截然不同的路徑。盲目堆積零散的細節，如同在沒有地基的狀態下築起高塔，隨時可能因微小的失衡而全面崩潰。相反地，建立宏觀的框架，則是先為知識劃定清晰的網格，讓繁雜的碎片能夠精準歸位。這組對比裝置揭示了系統化思考的價值：唯有先看見整體的輪廓，局部的細節才能找到安放的座標。",
+            literature: `<p><strong>朱光潛《給青年的十二封信》</strong><br>這是一本陪伴無數人走過迷惘青春的經典。美學大師朱光潛在信中苦口婆心地勸導年輕人，學習與生活都不該是盲目地死記硬背或堆砌知識。他強調要先建立起自己的人格與思想「骨架」，有了這層清晰的框架，吸收進來的碎片化知識才能找到安放的座標，轉化為真正的智慧。這正是這件藝術裝置想要傳達的核心精神。</p>`
+        },
+        { 
+            id: 3, 
+            url: "art3.html", 
+            num: "NO. 03", 
+            title: "徒勞的完美", 
+            subtitle: "完美主義的無盡迴圈與崩潰", 
+            previewHTML: `<div class="preview-art3">${'<div class="p-dot"></div>'.repeat(16)}</div>`, 
+            analysis: "這件互動裝置精準地諷刺了學生在學習過程中對「完美」的過度執著。畫布上微小的瑕疵總誘使我們去修正，但如同現實中的「打地鼠」，過度苛求細節的代價，往往是引發更多預料之外的混亂。當修復的動作本身成為破壞整體結構的根源，作品揭示了一個殘酷的悖論：無止盡的完美主義，終究是一場徒勞無功的自我消耗。有時候，接受適度的不完美，才是維持系統運作的正解。",
+            literature: `<p><strong>季羨林《不完滿才是人生》</strong><br>這位國學大師在經歷了近百年的歲月滄桑後，得出了一個質樸而通透的結論：「每個人都爭取一個完滿的人生，然而，自古及今，海內海外，一個百分之百完滿的人生是沒有的。」這件裝置就是這個道理的數位縮影。當我們過度執著於修補畫布上的每一個小瑕疵時，反而會引發整體系統的崩潰。學會接受適度的不完美，放過自己，才是人生最真實的解脫。</p>`
+        },
+        { 
+            id: 4, 
+            url: "art4.html", 
+            num: "NO. 04", 
+            title: "算計與詩篇", 
+            subtitle: "即時成就感與延遲的靈魂", 
+            previewHTML: `<div class="preview-art4"><div class="art4-poem">用數字填滿留白，連靈魂也無法閱讀。</div><div class="art4-math">+100</div><div class="art4-math">8923</div><div class="art4-ring"></div></div>`, 
+            analysis: "這件作品諷刺了當代學生過度追求量化成績與「即時滿足」的現象。畫面上不斷彈出的數字，象徵著算計與速成的成就感，你可以輕易透過點擊與滑動獲得分數；但代價是，代表內涵的文學詩篇會逐漸被亂碼吞噬。語文的學習沒有捷徑，它需要「延遲滿足」——唯有當你克制住追逐分數的衝動，在空白處耐心長按停留，拒絕干擾，文字真正的意義與美麗才會向你顯現。",
+            literature: `<p><strong>豐子愷《緣緣堂隨筆》</strong><br>豐子愷的散文極度推崇純粹的「童心」，他感嘆成年人的世界裡處處充滿了算計與功利的態度。這件裝置正是兩種價值觀的激烈碰撞：點擊得分代表了成人世界裡功利的算計；而長按等待才能看見的詩篇，則是那份不計較得失、純粹欣賞美好的童心與詩意。人生如果只剩下數字（分數、金錢）的堆疊，將會變得多麼枯燥乏味。</p>`
+        },
+        { 
+            id: 5, 
+            url: "art5.html", 
+            num: "NO. 05", 
+            title: "Absorb？Apply？", 
+            subtitle: "無用之用", 
+            previewHTML: `<div class="preview-art5"><div class="art5-aura"></div><div class="art5-laser"></div><div class="art5-laser"></div><div class="art5-laser"></div><div class="art5-core"></div></div>`, 
+            analysis: "這件互動裝置以浩瀚宇宙為隱喻，演繹了我們面對深層知識時兩種截然不同的態度。作品揭示了學習的真相：無用的知識往往才是滋養靈魂的深邃養分，而過度追求即時變現的學習，終將導致精神世界的貧瘠與荒蕪。",
+            literature: `<p><strong>王小波《一隻特立獨行的豬》</strong><br>王小波在這本幽默而辛辣的經典文集中，反覆表達了一個觀念：人不應該像流水線上的豬一樣，只為了某個「實用」的目的（被吃掉或被勞役）而被設定好人生。學習也是如此。這件宇宙裝置隱喻了，如果我們只追求能立刻「Apply（應用）」變現的技能，我們的心靈就會日漸乾涸；相反地，那些看似無用的詩歌、藝術與深層思考，才是真正能讓靈魂變得浩瀚自由的養分。</p>`
+        },
+        { 
+            id: 6, 
+            url: "art6.html", 
+            num: "NO. 06", 
+            title: "軌跡與灰燼", 
+            subtitle: "急躁的代價與慢活的詩意", 
+            previewHTML: `<div class="preview-art6"><div class="art6-slow"></div><div class="art6-fast-container"><div class="art6-fast"></div></div></div>`, 
+            analysis: "這件互動裝置具象化了現代人急功近利的焦慮。當你急於求成、在畫布上快速拖曳時，留下的只有枯燥、脆弱且註定碎裂墜落的灰色線條；而當你願意慢下來，沉穩地感受當下的軌跡，畫面便會隨著時間流轉，綻放出絢麗的光彩與生命力。作品溫柔地提醒我們：唯有學會欣賞過程的緩慢，生活才會向我們展露它真實的美麗；急躁求來的結果，終究只是沒有根基、轉瞬即逝的灰燼。",
+            literature: `<p><strong>木心《從前慢》</strong><br>「從前的日色變得慢 / 車，馬，郵件都慢 / 一生只夠愛一個人。」木心這首家喻戶曉的現代詩，完美契合了這件裝置的靈魂。現代社會總是教導我們追求速度，但在畫布上，急躁的快速拖曳只能留下註定碎裂的灰色痕跡。唯有像詩中那樣，願意把腳步放慢，沉穩地感受當下，生活的軌跡才會慢慢綻放出絢麗的光彩。</p>`
+        },
+        { 
+            id: 7, 
+            url: "art7.html", 
+            num: "NO. 07", 
+            title: "靈魂代幣", 
+            subtitle: "效率的代價與思維的石化", 
+            previewHTML: `<div class="preview-art7"><div class="art7-link"></div><div class="art7-link"></div><div class="art7-face"></div></div>`, 
+            analysis: "這件互動裝置是對人工智慧時代的警世寓言。當我們沈迷於 AI 帶來的高效與便捷，大腦中負責深度連結的神經元卻在悄然斷裂。作品中，當你追求運算速度時，畫面會爆發出耀眼的光芒，但這光芒轉瞬即逝，隨之而來的是死寂的灰色與凝固的線條。這象徵著思維外包後的終局——我們獲得了完美的答案，卻失去了提問的靈魂，最終化為資訊洪流中一座座無法思考的石像。",
+            literature: `<p><strong>老舍《駱駝祥子》</strong><br>雖然這是一部描寫民初車夫的作品，但祥子的悲劇卻是跨時代的。祥子原本是一個充滿生命力與夢想的人，但在殘酷現實的壓迫與對生存效率的極度渴求下，他漸漸失去了感受愛與思考的能力，最終變成了一具麻木、沒有靈魂的行屍走肉。這與裝置中「思維石化」的隱喻如出一轍：當我們為了追求極致的高效而捨棄了深度的思考，我們終將淪為空洞的石像。</p>`
+        },
+        { 
+            id: 8, 
+            url: "art8.html", 
+            num: "NO. 08", 
+            title: "點的狹隘", 
+            subtitle: "點、線、面與思維的維度", 
+            previewHTML: `<div class="preview-art8"><div class="art8-scene"><div class="art8-f"></div><div class="art8-p"></div><div class="art8-p"></div><div class="art8-p"></div><div class="art8-l" style="top:35%; left:45%; transform:rotate(60deg);"></div><div class="art8-l" style="top:55%; left:40%; transform:rotate(0deg);"></div><div class="art8-l" style="top:55%; left:60%; transform:rotate(-120deg);"></div></div></div>`, 
+            analysis: "這件互動裝置以極簡的幾何演變，諷刺了學生常將科目視為互不相干的孤島。在畫面左側，知識只是混沌、離散的點；當你主動介入，試圖尋找關聯，這些點才開始連成線，進而結成面，最終構建出完整的立體思維結構。唯有懂得觸類旁通，將不同學科的邏輯相互映射，我們才能突破平面的局限，看見知識全貌的立體之美。",
+            literature: `<p><strong>史鐵生《我與地壇》</strong><br>史鐵生因為雙腿殘疾，人生的物理範圍被縮減到了極致的「一個點」——輪椅上的他與一座破敗的地壇。然而，他並沒有被這個狹隘的點困住，反而主動出擊，將自己的苦難與四時更迭、生老病死建立起深刻的邏輯關聯。他將孤立的痛苦連成了線，最終昇華成對全人類生命哲學的宏觀之「面」。這是一部教人如何突破維度侷限、看見思想全貌的偉大作品。</p>`
+        },
+        { 
+            id: 9, 
+            url: "art9.html", 
+            num: "NO. 09", 
+            title: "循規與破局", 
+            subtitle: "慣性思維的迷宮與主動出擊的智慧", 
+            previewHTML: `<div class="preview-art9"><div class="art9-maze"></div><div class="art9-p1"></div><div class="art9-p2"></div><div class="art9-burst"></div></div>`, 
+            analysis: "這件互動裝置直擊了學習過程中常見的「思維僵化」。畫面上雖然提供了方向鍵，誘使你操控藍球乖乖走完迷宮；但如果你只懂得循規蹈矩地按部就班，最終往往會耗盡精力，淪為流水線上不知變通的灰色方塊。\n\n真正的隱藏破局之法，在於無視那些預設的按鍵——請直接用滑鼠或手指按住代表目標的「紅球」，將它拖曳到藍球身邊。當你跳出既定規則，僵化的迷宮框架便會瞬間粉碎，化為衝破維度的絢麗星辰。",
+            literature: `<p><strong>三毛《撒哈拉的故事》</strong><br>三毛的一生，就是對「循規蹈矩」最美麗的反叛。在那個社會對女性充滿既定期待的年代，她沒有走進世俗安排好的安全迷宮，而是毅然決然地跳出框架，將生命的座標拖曳到了遙遠荒涼的撒哈拉沙漠，並在那裡綻放出了無比絢麗的光彩。這件裝置要告訴你的，正是三毛教給我們的智慧：當你發現眼前的規則是一座會耗盡靈魂的迷宮時，請大膽拋棄方向鍵，主動為自己的人生破局。</p>`
+        },
+        { 
+            id: 10, 
+            url: "art10.html", 
+            num: "NO. 10", 
+            title: "無效的用功", 
+            subtitle: "用功不是為了感動自己", 
+            previewHTML: `<div class="preview-art10"><div class="art10-core-p"></div><div class="art10-node-p"></div><div class="art10-line-p"></div></div>`, 
+            analysis: "這件互動裝置揭示了學習與工作中關於努力的真相。如果你試圖直接轉動輪子，你會發現阻力巨大，車輪會震動發紅，最終甚至會石化卡死——這象徵著盲目刷題與死記硬背的末路。唯有先將散落的知識節點與作為發亮的動力源接通，建立起完整的能量網絡，車輪才能在幾乎不費力的情況下自動運轉。",
+            literature: `<p><strong>劉墉《超越自己》</strong><br>劉墉寫給兒子的這本經典書信集，屢次談到了「聰明的努力」。很多人讀書或工作，就像裝置裡那顆拼命卻卡死的輪子，只顧著用蠻力摩擦，流了一身汗，卻只是在「感動自己」。真正的用功，應該是先停下來，找到知識與目標之間的連結，接通底層的邏輯網絡。唯有找對了方向與方法，努力才能真正轉化為推動你前進的能量。</p>`
+        },
+        { 
+            id: 11, 
+            url: "art11.html", 
+            num: "NO. 11", 
+            title: "定靜的試煉", 
+            subtitle: "在躁動世界重拾閱讀本能", 
+            previewHTML: `<div class="preview-art11"><div class="art11-text-beam"></div><div class="art11-popup"></div><div class="art11-popup"></div></div>`, 
+            analysis: "這件作品是一場關於專注力的數位修行。畫面上引用了《大學》的經典篇章，但周圍不斷彈出的社群通知試圖將你的視線拉走。機制極其殘酷卻寫實：滑鼠的每一次游移都代表心智的動搖，導致文字模糊難辨；唯有保持滑鼠與身體的絕對靜止，拒絕所有數位誘惑，清晰的真理才會浮現。",
+            literature: `<p><strong>楊絳《我們仨》</strong><br>楊絳先生在書中，以極度平靜的筆觸回憶了她與錢鍾書、女兒的一生。儘管他們的一生經歷了戰亂與社會的劇烈動盪（如同畫面上不斷彈出的刺眼干擾），但他們一家人始終能在書桌前守住內心的清明，不被外界的喧囂所吞噬。這件作品就是一場關於「定力」的試煉：在充滿誘惑的時代，我們是否還能像楊絳那樣，保持靈魂的絕對靜止，看清生命真實的文字。</p>`
+        },
+        { 
+            id: 12, 
+            url: "art12.html", 
+            num: "NO. 12", 
+            title: "控制的幻覺", 
+            subtitle: "努力的落點與命運的紅線", 
+            previewHTML: `<div class="preview-art12"><div class="art12-limit-line"></div><div class="art12-ball-drop"></div><div class="art12-ball-drop"></div><div class="art12-stack-bar"></div><div class="art12-stack-bar"></div></div>`, 
+            analysis: "這件作品以釘板的機率遊戲，辯證了「努力」的真實價值。雖然落下的路徑充滿隨機變數，但你投入的蓄力越深，光球便越有機會落入高分的區間——這證明努力並非徒勞。作品試圖傳達的，還有一種在積極進取後的釋懷：我們能完全掌控的只有手中的力度，至於結果的些許偏差，我們只能學會優雅地接受。",
+            literature: `<p><strong>余華《活著》</strong><br>主角福貴的一生，就是在命運釘板上不斷落下的光球。他拼盡全力去蓄力，試圖掌控自己與家人的命運，但時代的隨機變數卻一次次將結果導向偏差與悲劇。然而，《活著》並非一本絕望的書。福貴最終的平靜與釋懷，正是對「控制幻覺」的徹底覺醒：我們無法決定光球最終落入哪個區間，但只要我們投入了活下去的力度，學會優雅地承受一切偏差，生命本身便已經足夠偉大。</p>`
+        },
+        { 
+            id: 13, 
+            url: "art13.html", 
+            num: "NO. 13", 
+            title: "旅伴", 
+            subtitle: "執念的枷鎖與共鳴的自由", 
+            previewHTML: `<div class="preview-art13"><div class="art13-line"></div><div class="art13-dot"></div><div class="art13-center"></div></div>`, 
+            analysis: "這件互動裝置深刻剖析了人際關係的本質，以及我們面對相聚與離別的態度。當我們懷抱控制慾，試圖強行捕捉並綁定周遭的個體時，換來的往往是恐懼、逃離，以及過度拉扯所留下的暗色傷疤。\n\n此外，作品的深意更在於揭示一個無奈卻美麗的生命常態：無論是朋友、戀人還是家人，每個人的人生軌跡都有屬於自己的「終點站」。他們注定只會在生命的某個階段與我們並肩同行，離別是必然的宿命。\n\n當我們放下緊抓不放的執念，以共鳴取代佔有，便能看見彼此交會時綻放的溫暖光芒。真正的愛與成熟，是懂得在他們到站離去時不再強留；學會坦然接受緣分的聚散，目送他們化作璀璨的光點，優雅而無憾地告別。",
+            literature: `<p><strong>龍應台《目送》</strong><br>「我慢慢地、慢慢地瞭解到，所謂父女母子一場，只不過意味著，你和他的緣分就是今生今世不斷地在目送他的背影漸行漸遠。」這段經典名句，是這件藝術裝置最完美的註解。書中寫盡了人生的聚散離合，提醒我們面對親情與摯愛，最強大的愛不是用執念去綑綁與強留，而是學會在他們到站時，放下枷鎖，滿懷共鳴與祝福地目送他們化作光點離去。</p>`
+        },
+        { 
+            id: 14, 
+            url: "art14.html", 
+            num: "NO. 14", 
+            title: "越界的互補", 
+            subtitle: "我們兩個人，並排在一起，看看這個落寞的人間。", 
+            previewHTML: `<div class="preview-art14"><div class="art14-c1"></div><div class="art14-c2"></div><div class="art14-clash-wave"></div></div>`, 
+            analysis: "這件裝置深刻剖析了親密關係中的「互補」迷思。畫面上兩個殘缺的幾何體，如同帶著各自創傷與缺陷的靈魂。當它們保持適當距離時，能在各自的軌道上平靜地散發出柔和的光芒；然而，一旦它們試圖越界，妄想用對方的存在來填補自己靈魂的缺口時，不僅無法完美契合，反而會引發劇烈的排斥與震盪，原本的光彩也會隨之被焦慮的血紅色吞噬。\n\n人生在世，誰都不完美，誰都無法真正「救贖」誰。與其病態地緊抓著一個同樣有缺陷的人來補自己的缺陷，不如學會帶著裂痕獨立旋轉。真正的愛，是我們承認各自的殘缺，留下呼吸的距離，卻依然能並肩同行。",
+            literature: `<p><strong>舒婷《致橡樹》</strong><br>這首現代詩是華語文學中探討親密關係邊界的巔峰之作。「我必須是你近旁的一株木棉，作為樹的形象和你站在一起。」詩人拒絕做攀附的凌霄花，也拒絕互相填補缺口的病態依戀。她倡導的愛，正如裝置中那兩個保持距離、各自殘缺卻各自發光的幾何體：承認彼此的獨立，留下呼吸的空間，不求越界融合，只求在各自的軌道上並肩同行。</p>`
+        },
         { 
             id: 15, 
             url: "art15.html", 
@@ -658,7 +836,8 @@
             title: "未知的畫布", 
             subtitle: "視野的侷限與宏大的風景", 
             previewHTML: `<div class="preview-art15"><div class="art15-spotlight"></div></div>`, 
-            analysis: "這件互動裝置探索了人生的意義與視野的侷限。\n\n在起始的微觀視角中，我們只能看見粗糙、不完美的筆觸，宛如我們在黑暗與挫折中摸索的當下，感覺自己走出的這條路充滿瑕疵且毫無意義。然而，當我們不放棄地持續探索，隨著人生閱歷的累積，鏡頭會逐漸拉遠，那些原本雜亂無章的油彩，終將在視覺上產生融合，拼湊出一幅宏偉壯麗的世界級風景畫。\n\n只要你不放棄創造，退後一步看，你的人生便是一幅無可取代的大師之作。" 
+            analysis: "這件互動裝置探索了人生的意義與視野的侷限。\n\n在起始的微觀視角中，我們只能看見粗糙、不完美的筆觸，宛如我們在黑暗與挫折中摸索的當下，感覺自己走出的這條路充滿瑕疵且毫無意義。然而，當我們不放棄地持續探索，隨著人生閱歷的累積，鏡頭會逐漸拉遠，那些原本雜亂無章的油彩，終將在視覺上產生融合，拼湊出一幅宏偉壯麗的世界級風景畫。\n\n只要你不放棄創造，退後一步看，你的人生便是一幅無可取代的大師之作。",
+            literature: `<p><strong>席慕蓉《七里香》（詩集）</strong><br>席慕蓉在名作〈青春〉中寫道：「青春是一本太倉促的書……我們含著淚，一讀再讀。」當我們身處青春或人生的低谷時，眼前看見的往往只有痛苦與不完美的雜亂筆觸（微觀視角）；然而，當歲月流逝，我們退後一步重新翻閱，那些曾以為毫無意義的眼淚與挫折，早已在不經意間交織成一幅無可取代的美麗畫卷。只要不放棄經歷，你的生命終會是一幅傑作。</p>`
         },
         { 
             id: 16, 
@@ -677,7 +856,8 @@
 <p>信紙上沒有寫下隻字片語，<br>是因為它想溫柔地告訴你：<br>等待的過程，往往比結果更重要。</p>
 <p>結果或許只是一片無言的空白，<br>但你在這未知的一分鐘裡所投入的平靜與期盼，<br>本身已是最豐碩的收穫。</p>
 <p>人總是不自覺地，深愛著自己付出的軌跡。<br>若沒有你方才的耐心，這僅是一頁冰冷的白紙；<br>是你付出的光陰，賦予了它被打開的重量。</p>
-<p>願往後的日子，<br>你也能溫柔擁抱生命裡每一個未知的停頓。<br>因為值得珍惜的，<br>總會在你的注視中，安靜盛開。</p>`
+<p>願往後的日子，<br>你也能溫柔擁抱生命裡每一個未知的停頓。<br>因為值得珍惜的，<br>總會在你的注視中，安靜盛開。</p>`,
+            literature: `<br>如果你在等待的這一分鐘裡感到了一絲焦躁，<br>不妨想起顧城那首雋永的短詩《門前》：<br>「草在結它的種子，風在搖它的葉子。<br>我們站著，不說話，就十分美好。」<br><br>有時候，生命中最深刻的交流與豐收，<br>並不需要填滿喧囂的文字或急切的結果。<br>在這六十秒的空白裡，你願意靜靜地停駐，<br>這份「不說話」的守候本身，就已經十分美好。`
         }
     ];
 
@@ -915,23 +1095,44 @@
     const analysisPanel = document.getElementById('analysis-panel');
     const specialPaper16 = document.getElementById('special-paper-16'); // 抓取信紙
 
-    function openViewer(exData) {
-        currentViewingId = exData.id; // 記錄當前 ID
+   function openViewer(exData) {
+        currentViewingId = exData.id;
         artFrame.src = exData.url;
         
-        // 渲染常規的玻璃賞析面板文字
         document.getElementById('analysis-title').innerText = exData.title;
-        document.getElementById('analysis-text').innerHTML = exData.analysis; 
         
-        // 如果是 ART 16，則將詩句渲染進專屬信紙裡
-        if (exData.id === 16) {
-            document.getElementById('special-paper-text').innerHTML = exData.analysis;
+        // 構建文學推薦的 HTML 結構
+        let litHtml = "";
+        if (exData.literature) {
+            if (exData.id === 16) {
+                // ART 16 專屬的附言格式
+                litHtml = `
+                    <div class="art16-postscript">
+                        <p><strong>附言：</strong></p>
+                        ${exData.literature}
+                    </div>`;
+                document.getElementById('special-paper-text').innerHTML = exData.analysis + litHtml;
+            } else {
+                // ART 1-15 的現代展區格式
+                litHtml = `
+                    <div class="lit-recommendation">
+                        <div class="lit-title">延伸閱讀 Literary Resonance</div>
+                        <div class="lit-content">${exData.literature}</div>
+                    </div>`;
+                document.getElementById('analysis-text').innerHTML = exData.analysis + litHtml;
+            }
+        } else {
+            // 防呆處理，若沒有填寫推薦
+            if (exData.id === 16) {
+                document.getElementById('special-paper-text').innerHTML = exData.analysis;
+            } else {
+                document.getElementById('analysis-text').innerHTML = exData.analysis;
+            }
         }
         
         viewer.classList.add('active');
         document.getElementById('nav-deck').classList.add('nav-hidden');
         
-        // 確保剛打開時，兩種賞析面板都是隱藏狀態
         analysisPanel.classList.remove('show');
         specialPaper16.classList.remove('show');
     }
